@@ -15,7 +15,7 @@ export const PIPE_WIDTH_FRAC = 0.14;
 export const PIPE_GAP_FRAC = 0.28;
 
 /** Larger gap on short/narrow screens so phone play is fairer */
-export const PIPE_GAP_FRAC_MOBILE = 0.34;
+export const PIPE_GAP_FRAC_MOBILE = 0.36;
 
 /** Treat canvas as "phone-ish" when below these CSS sizes */
 export const MOBILE_GAP_MAX_HEIGHT = 700;
@@ -29,6 +29,24 @@ export const PIPE_SPACING = 0.55;
 
 /** EMA alpha for torso→bird Y smoothing (higher = snappier) */
 export const EMA_ALPHA = 0.35;
+
+/**
+ * Top-of-push-up (plank) start calibration.
+ * Hold a stable smoothed torso Y for this long to lock upY.
+ */
+export const CALIB_HOLD_MS = 1000;
+
+/** Max stddev of smoothed Y over the hold window to count as "stable" */
+export const CALIB_MAX_STD = 0.014;
+
+/** Default MediaPipe-Y range from calibrated up toward down until a real down is learned */
+export const DEFAULT_DOWN_OFFSET = 0.30;
+
+/** Minimum usable push-up range (MediaPipe Y) once motion is observed */
+export const MIN_LEARNED_RANGE = 0.12;
+
+/** How far toward the top of the playable band calibrated "up" sits (0 = top pad) */
+export const CALIB_UP_BIRD_FRAC = 0.12;
 
 /** MediaPipe Pose landmark indices */
 export const LM = {
