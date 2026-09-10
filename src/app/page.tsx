@@ -68,6 +68,11 @@ export default function HomePage() {
               looking up works great; laptop webcam is fine too.
             </li>
             <li>
+              Hold the <strong className="font-medium text-zinc-300">top of a
+              push-up</strong> (plank) for about a second to set bird “up” near
+              the top. Then tap Start.
+            </li>
+            <li>
               Bird Y follows your shoulders/torso. Go down → bird down. Go up →
               bird up.
             </li>

@@ -35,7 +35,7 @@ Local LAN `http://192.168.x.x:3000` often blocks the camera; use a tunnel or the
 
 - **Laptop first:** easiest path — allow the front camera and get into push-up position facing the webcam.
 - **Phone:** portrait works with the phone on the floor facing up; landscape is optional.
-- Face the camera in a push-up plank; when the coach prompt clears, hit **Start**.
+- Face the camera in a push-up plank; hold the **top of a push-up** until you see **Start position set**, then hit **Start**.
 
 ## Pose → bird mapping
 
@@ -43,11 +43,12 @@ Local LAN `http://192.168.x.x:3000` often blocks the camera; use a tunnel or the
 
 1. MediaPipe Pose Landmarker runs on each video frame (WASM + lite model from Google CDN / jsDelivr — no API keys).
 2. **Torso height** = midpoint of left/right shoulders (landmarks 11 & 12). Fallbacks: hip–shoulder midpoint, then nose.
-3. MediaPipe `y` is normalized **0 = top of frame, 1 = bottom**. Going **down** in a push-up raises torso `y` → bird moves **down**; pressing **up** lowers torso `y` → bird moves **up**.
-4. Light **EMA** smoothing (`α ≈ 0.35`) reduces jitter.
-5. Bird **X** is fixed; pipes scroll right→left with gap collision, scoring, game over, restart, and **high score in `localStorage`**.
-6. Optional **rep counter** detects down→up cycles from the same torso signal.
-7. On short/narrow screens the pipe gap is slightly larger for fairer phone play; camera requests a lower ideal resolution on narrow viewports.
+3. **Start calibration:** hold the top of a push-up (plank) with low torso-Y variance for ~1s. That locks `upY` so the bird sits near the **top** of the playable range. Start stays disabled until you see **Start position set**. Play again recalibrates.
+4. Mapping uses the range from `upY` toward a default down offset (~0.30 MediaPipe Y), expanding as a real bottom is learned. Going **down** raises torso `y` → bird moves **down**; pressing **up** → bird moves **up**.
+5. Light **EMA** smoothing (`α ≈ 0.35`) reduces jitter.
+6. Bird **X** is fixed; pipes scroll right→left with gap collision, scoring, game over, restart, and **high score in `localStorage`**.
+7. Optional **rep counter** detects down→up cycles from the same torso signal.
+8. On short/narrow screens the pipe gap is slightly larger for fairer phone play; camera requests a lower ideal resolution on narrow viewports.
 
 Classic gravity+flap is intentionally **not** used as primary — continuous Y feels better for push-ups and matches the inspiration.
 
