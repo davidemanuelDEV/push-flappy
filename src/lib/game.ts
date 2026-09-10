@@ -80,7 +80,8 @@ export function startGame(state: GameState): GameState {
   for (let i = 0; i < 3; i++) {
     pipes.push(spawnPipe(state, state.width * 0.75 + i * spacing));
   }
-  return { ...state, status: "playing", score: 0, pipes, birdY: state.height * 0.5 };
+  // Keep current birdY (calibrated plank maps near top) instead of snapping mid-screen
+  return { ...state, status: "playing", score: 0, pipes };
 }
 
 export function birdRadius(height: number): number {
