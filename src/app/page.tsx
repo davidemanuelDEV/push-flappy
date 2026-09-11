@@ -128,12 +128,12 @@ export default function HomePage() {
           >
             <p className="text-sm font-bold text-zinc-100">Beat-me challenges</p>
             <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
-              Wipe out, then share a{" "}
+              Wipe out, then share via{" "}
               <strong className="font-semibold text-zinc-200">
-                beat-me link
+                WhatsApp, X, copy, or a share card
               </strong>
               . Friends open the same score to beat — bar-to-beat in the HUD,
-              victory share when they clear it.
+              victory flex when they clear it.
             </p>
           </div>
         </section>

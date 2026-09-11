@@ -34,14 +34,16 @@ import {
   type CrashBurst,
 } from "@/lib/crash";
 import {
-  beatThemShareText,
-  challengeShareText,
+  buildSharePayload,
+  downloadShareCard,
+  openShareWindow,
   parseBeatFromSearch,
-  playUrl,
   renderShareCard,
   shareCardFile,
   shareOrCopy,
-  SITE_ORIGIN,
+  whatsappShareUrl,
+  xIntentUrl,
+  copyToClipboard,
 } from "@/lib/share";
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
 import {
@@ -468,38 +470,77 @@ export default function PushFlappyGame() {
   };
 
   const flashShareStatus = (result: string) => {
-    if (result === "copied") setShareStatus("Challenge copied to clipboard");
+    if (result === "copied") setShareStatus("Copied!");
     else if (result === "shared") setShareStatus("Shared!");
     else if (result === "prompted") setShareStatus("Copy the text shown");
+    else if (result === "saved") setShareStatus("Card saved");
+    else if (result === "opened") setShareStatus("Opening share…");
     else setShareStatus(null);
   };
 
-  const onShareChallenge = async () => {
-    const url = playUrl({ beat: ui.score, reps: ui.reps, origin: SITE_ORIGIN });
-    const text = challengeShareText({ score: ui.score, reps: ui.reps, wipeoutLine, url });
-    let file: File | null = null;
-    try {
-      const card = renderShareCard({ score: ui.score, reps: ui.reps, wipeoutLine, mode: "challenge" });
-      file = await shareCardFile(card);
-    } catch {
-      file = null;
-    }
-    const result = await shareOrCopy({ text, url, file });
+  const currentSharePayload = () =>
+    buildSharePayload({
+      mode: beatVictory && beatTarget != null ? "victory" : "challenge",
+      score: ui.score,
+      reps: ui.reps,
+      wipeoutLine,
+      beatTarget,
+    });
+
+  const currentShareCard = () =>
+    renderShareCard({
+      score: ui.score,
+      reps: ui.reps,
+      wipeoutLine,
+      beatTarget,
+      mode: beatVictory && beatTarget != null ? "victory" : "challenge",
+    });
+
+  const onShareWhatsApp = () => {
+    const payload = currentSharePayload();
+    openShareWindow(whatsappShareUrl(payload.text));
+    flashShareStatus("opened");
+  };
+
+  const onShareX = () => {
+    const payload = currentSharePayload();
+    openShareWindow(xIntentUrl({ text: payload.textNoUrl, url: payload.url }));
+    flashShareStatus("opened");
+  };
+
+  const onCopyLink = async () => {
+    const payload = currentSharePayload();
+    // Prefer beat-me URL; include full challenge text for paste-anywhere sharing.
+    const result = await copyToClipboard(`${payload.text}`);
     flashShareStatus(result);
   };
 
-  const onShareVictory = async () => {
-    if (beatTarget == null) return;
-    const url = playUrl({ beat: ui.score, reps: ui.reps, origin: SITE_ORIGIN });
-    const text = beatThemShareText({ yourScore: ui.score, theirScore: beatTarget, reps: ui.reps, url });
+  const onSaveCard = () => {
+    try {
+      const card = currentShareCard();
+      downloadShareCard(
+        card,
+        beatVictory ? "push-flappy-victory.png" : "push-flappy-challenge.png"
+      );
+      flashShareStatus("saved");
+    } catch {
+      setShareStatus("Couldn’t save card");
+    }
+  };
+
+  const onShareMore = async () => {
+    const payload = currentSharePayload();
     let file: File | null = null;
     try {
-      const card = renderShareCard({ score: ui.score, reps: ui.reps, beatTarget, mode: "victory" });
-      file = await shareCardFile(card);
+      file = await shareCardFile(currentShareCard());
     } catch {
       file = null;
     }
-    const result = await shareOrCopy({ text, url, file });
+    const result = await shareOrCopy({
+      text: payload.text,
+      url: payload.url,
+      file,
+    });
     flashShareStatus(result);
   };
 
@@ -626,8 +667,11 @@ export default function PushFlappyGame() {
             beatVictory={beatVictory}
             shareStatus={shareStatus}
             onRestart={onRestart}
-            onShareChallenge={onShareChallenge}
-            onShareVictory={beatVictory ? onShareVictory : undefined}
+            onShareWhatsApp={onShareWhatsApp}
+            onShareX={onShareX}
+            onCopyLink={onCopyLink}
+            onSaveCard={onSaveCard}
+            onShareMore={onShareMore}
             onOpenBoard={onOpenBoard}
           />
         )}

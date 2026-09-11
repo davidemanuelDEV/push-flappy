@@ -1,5 +1,5 @@
 /**
- * Beat-me deep links + native share / clipboard fallback.
+ * Beat-me deep links + platform share helpers (WhatsApp, X, copy, card, native).
  */
 
 export const SITE_ORIGIN = "https://pushflappy.com";
@@ -7,6 +7,15 @@ export const SITE_ORIGIN = "https://pushflappy.com";
 export type BeatChallenge = {
   score: number;
   reps?: number;
+};
+
+export type SharePayload = {
+  url: string;
+  /** Full message including URL — WhatsApp, native, clipboard. */
+  text: string;
+  /** Punchy line without URL — X intent `text` param. */
+  textNoUrl: string;
+  mode: "challenge" | "victory";
 };
 
 export function playUrl(opts?: {
@@ -50,30 +59,155 @@ export function parseBeatFromSearch(
   };
 }
 
+function repsBit(reps?: number): string {
+  return reps && reps > 0 ? ` · ${reps} push-ups` : "";
+}
+
+function wipeBit(wipeoutLine?: string | null): string {
+  return wipeoutLine && wipeoutLine.trim()
+    ? ` ${wipeoutLine.trim()}`
+    : "";
+}
+
+/** Challenge copy — full message with URL (WhatsApp / native / copy). */
 export function challengeShareText(opts: {
   score: number;
   reps?: number;
   wipeoutLine?: string | null;
   url: string;
 }): string {
-  const wipe =
-    opts.wipeoutLine && opts.wipeoutLine.trim()
-      ? ` ${opts.wipeoutLine.trim()}`
-      : "";
-  const repsBit =
-    opts.reps && opts.reps > 0 ? ` · ${opts.reps} push-ups` : "";
-  return `I scored ${opts.score}${repsBit} on Push Flappy.${wipe} Think you can beat me? ${opts.url}`;
+  return `Beat my ${opts.score}${repsBit(opts.reps)} on Push Flappy!${wipeBit(opts.wipeoutLine)} Think you can? ${opts.url}`;
 }
 
+/** Challenge line for X (URL passed separately via intent). */
+export function challengeShareTextNoUrl(opts: {
+  score: number;
+  reps?: number;
+  wipeoutLine?: string | null;
+}): string {
+  return `Beat my ${opts.score}${repsBit(opts.reps)} on Push Flappy!${wipeBit(opts.wipeoutLine)} Think you can?`;
+}
+
+/** Victory copy — flex on the challenger. */
 export function beatThemShareText(opts: {
   yourScore: number;
   theirScore: number;
   reps?: number;
   url: string;
 }): string {
-  const repsBit =
-    opts.reps && opts.reps > 0 ? ` · ${opts.reps} push-ups` : "";
-  return `I beat your ${opts.theirScore} — scored ${opts.yourScore}${repsBit} on Push Flappy! 💪🐦 Your turn: ${opts.url}`;
+  return `Just beat your ${opts.theirScore} — scored ${opts.yourScore}${repsBit(opts.reps)} on Push Flappy! 💪 Your move: ${opts.url}`;
+}
+
+export function beatThemShareTextNoUrl(opts: {
+  yourScore: number;
+  theirScore: number;
+  reps?: number;
+}): string {
+  return `Just beat your ${opts.theirScore} — scored ${opts.yourScore}${repsBit(opts.reps)} on Push Flappy! 💪 Your move`;
+}
+
+export function buildSharePayload(opts: {
+  mode: "challenge" | "victory";
+  score: number;
+  reps?: number;
+  wipeoutLine?: string | null;
+  beatTarget?: number | null;
+  origin?: string;
+}): SharePayload {
+  const url = playUrl({
+    beat: opts.score,
+    reps: opts.reps,
+    origin: opts.origin ?? SITE_ORIGIN,
+  });
+  if (opts.mode === "victory" && opts.beatTarget != null) {
+    return {
+      url,
+      mode: "victory",
+      text: beatThemShareText({
+        yourScore: opts.score,
+        theirScore: opts.beatTarget,
+        reps: opts.reps,
+        url,
+      }),
+      textNoUrl: beatThemShareTextNoUrl({
+        yourScore: opts.score,
+        theirScore: opts.beatTarget,
+        reps: opts.reps,
+      }),
+    };
+  }
+  return {
+    url,
+    mode: "challenge",
+    text: challengeShareText({
+      score: opts.score,
+      reps: opts.reps,
+      wipeoutLine: opts.wipeoutLine,
+      url,
+    }),
+    textNoUrl: challengeShareTextNoUrl({
+      score: opts.score,
+      reps: opts.reps,
+      wipeoutLine: opts.wipeoutLine,
+    }),
+  };
+}
+
+export function whatsappShareUrl(text: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
+export function xIntentUrl(opts: { text: string; url: string }): string {
+  const u = new URL("https://twitter.com/intent/tweet");
+  u.searchParams.set("text", opts.text);
+  u.searchParams.set("url", opts.url);
+  return u.toString();
+}
+
+export function openShareWindow(href: string): void {
+  if (typeof window === "undefined") return;
+  // Mobile: plain _blank works best for wa.me / intent URLs.
+  // Desktop: sized popup for X intent when possible.
+  const isNarrow = window.matchMedia("(max-width: 640px)").matches;
+  if (isNarrow) {
+    const a = document.createElement("a");
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  }
+  const w = 560;
+  const h = 640;
+  const left = Math.max(
+    0,
+    Math.round(window.screenX + (window.outerWidth - w) / 2)
+  );
+  const top = Math.max(
+    0,
+    Math.round(window.screenY + (window.outerHeight - h) / 2)
+  );
+  const features = `noopener,noreferrer,width=${w},height=${h},left=${left},top=${top}`;
+  const popup = window.open(href, "_blank", features);
+  if (!popup) {
+    window.location.assign(href);
+  }
+}
+
+export async function copyToClipboard(
+  text: string
+): Promise<"copied" | "prompted"> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return "copied";
+  } catch {
+    if (typeof window !== "undefined") {
+      window.prompt("Copy your challenge:", text);
+    }
+    return "prompted";
+  }
 }
 
 export async function shareOrCopy(opts: {
@@ -103,15 +237,7 @@ export async function shareOrCopy(opts: {
     }
     /* fall through */
   }
-  try {
-    await navigator.clipboard.writeText(text);
-    return "copied";
-  } catch {
-    if (typeof window !== "undefined") {
-      window.prompt("Copy your challenge:", text);
-    }
-    return "prompted";
-  }
+  return copyToClipboard(text);
 }
 
 /** Quick square share card (1080×1080) — optional Story-ish asset. */
@@ -226,4 +352,18 @@ export async function shareCardFile(
       0.92
     );
   });
+}
+
+/** Trigger a PNG download of the share card. */
+export function downloadShareCard(
+  canvas: HTMLCanvasElement,
+  filename = "push-flappy.png"
+): void {
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }

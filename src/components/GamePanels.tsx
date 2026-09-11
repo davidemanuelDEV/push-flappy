@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import ReminderCapture from "@/components/ReminderCapture";
@@ -111,6 +112,35 @@ export function ReadyPanel({
   );
 }
 
+function ShareActionButton({
+  label,
+  onClick,
+  title,
+  className,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  title?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title ?? label}
+      aria-label={label}
+      className={`flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-semibold leading-none touch-manipulation ${className ?? ""}`}
+    >
+      <span className="text-base leading-none" aria-hidden>
+        {children}
+      </span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
 export function GameOverPanel({
   score,
   highScore,
@@ -120,8 +150,11 @@ export function GameOverPanel({
   beatVictory,
   shareStatus,
   onRestart,
-  onShareChallenge,
-  onShareVictory,
+  onShareWhatsApp,
+  onShareX,
+  onCopyLink,
+  onSaveCard,
+  onShareMore,
   onOpenBoard,
 }: {
   score: number;
@@ -132,10 +165,17 @@ export function GameOverPanel({
   beatVictory?: boolean;
   shareStatus?: string | null;
   onRestart: () => void;
-  onShareChallenge: () => void;
-  onShareVictory?: () => void;
+  onShareWhatsApp: () => void;
+  onShareX: () => void;
+  onCopyLink: () => void;
+  onSaveCard: () => void;
+  onShareMore: () => void;
   onOpenBoard: () => void;
 }) {
+  const shareHeading = beatVictory
+    ? "Flex on them"
+    : "Challenge a friend";
+
   return (
     <div className="absolute inset-0 z-10 flex items-end justify-center bg-gradient-to-t from-black/75 via-black/45 to-black/25 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:bg-black/55 sm:p-4">
       <div className="w-full max-w-sm rounded-2xl bg-zinc-900/95 p-5 text-center shadow-xl backdrop-blur-md sm:p-6">
@@ -170,23 +210,58 @@ export function GameOverPanel({
         <div className="mt-3">
           <ReminderCapture source="gameover" compact />
         </div>
-        <div className="mt-4 flex flex-col gap-2 sm:mt-5">
-          {beatVictory && onShareVictory && (
-            <button
-              type="button"
-              onClick={onShareVictory}
-              className="flex min-h-11 w-full items-center justify-center rounded-xl bg-amber-400 px-4 py-3 font-bold text-zinc-950"
-            >
-              You beat them — share
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onShareChallenge}
-            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-zinc-100 px-4 py-3 font-bold text-zinc-950"
+        <div className="mt-4 sm:mt-5">
+          <p className="mb-2 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+            {shareHeading}
+          </p>
+          <div
+            className="flex gap-1.5"
+            role="group"
+            aria-label={shareHeading}
           >
-            Share challenge
-          </button>
+            <ShareActionButton
+              label="WhatsApp"
+              title="Share on WhatsApp"
+              onClick={onShareWhatsApp}
+              className="bg-[#25D366]/text-zinc-950"
+            >
+              WA
+            </ShareActionButton>
+            <ShareActionButton
+              label="X"
+              title="Share on X"
+              onClick={onShareX}
+              className="bg-zinc-100 text-zinc-950"
+            >
+              𝕏
+            </ShareActionButton>
+            <ShareActionButton
+              label="Copy"
+              title="Copy beat-me link"
+              onClick={onCopyLink}
+              className="bg-zinc-700 text-white"
+            >
+              🔗
+            </ShareActionButton>
+            <ShareActionButton
+              label="Save"
+              title="Save share card PNG"
+              onClick={onSaveCard}
+              className="bg-amber-400 text-zinc-950"
+            >
+              🖼
+            </ShareActionButton>
+            <ShareActionButton
+              label="More…"
+              title="More share options"
+              onClick={onShareMore}
+              className="bg-zinc-600 text-white"
+            >
+              ⋯
+            </ShareActionButton>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-col gap-2">
           <button
             type="button"
             onClick={onOpenBoard}
