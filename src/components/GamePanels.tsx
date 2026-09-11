@@ -364,6 +364,9 @@ export function LeaderboardPanel({
   if (!open) return null;
 
   const isPage = variant === "page";
+  // Growth: board → /play?beat=N when today’s #1 exists. Hide if empty / no score.
+  const topScore = isPage ? todaysTopScore(entries) : null;
+  const beatHref = topScore != null ? `/play?beat=${topScore}` : null;
 
   const panel = (
     <div
@@ -468,6 +471,15 @@ export function LeaderboardPanel({
       </div>
 
       <div className="space-y-2 border-t border-amber-950/80 px-4 py-3">
+        {beatHref != null && (
+          <Link
+            href={beatHref}
+            aria-label={`Beat today’s #1 — score ${topScore}`}
+            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950"
+          >
+            Beat today’s #1
+          </Link>
+        )}
         {isPage && (
           <ReminderCapture source="board" className="mb-1" />
         )}
@@ -524,7 +536,11 @@ export function LeaderboardPanel({
             <div className="flex gap-2">
               <Link
                 href={playHref}
-                className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950"
+                className={
+                  beatHref != null
+                    ? "flex min-h-11 flex-1 items-center justify-center rounded-xl border border-amber-200/35 bg-transparent px-3 font-semibold text-amber-100"
+                    : "flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950"
+                }
               >
                 Play to post
               </Link>
@@ -557,6 +573,13 @@ export function LeaderboardPanel({
       {panel}
     </div>
   );
+}
+
+function todaysTopScore(entries: LeaderboardEntry[]): number | null {
+  const top = entries[0];
+  if (!top || typeof top.score !== "number") return null;
+  if (!Number.isFinite(top.score) || top.score < 0) return null;
+  return Math.floor(top.score);
 }
 
 function normalizeIso(raw: unknown): string {
