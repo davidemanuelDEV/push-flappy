@@ -310,11 +310,6 @@ export function GameOverPanel({
               ⋯
             </ShareActionButton>
           </div>
-          <SiblingPromo
-            surface={siblingSurface}
-            variant="inline"
-            className="mt-2"
-          />
         </div>
         <div className="mt-3">
           <ReminderCapture source="gameover" compact />

@@ -1,16 +1,16 @@
 /**
  * Cross-market sibling: Squat Flappy.
- * Host is squat-flappy.vercel.app until squatflappy.com DNS is attached.
+ * squatflappy.com is attached (www → apex). Prefer /play.
  */
 
-export const SQUAT_FLAPPY_ORIGIN = "https://squat-flappy.vercel.app";
+export const SQUAT_FLAPPY_ORIGIN = "https://squatflappy.com";
 export const SQUAT_FLAPPY_PLAY_URL = `${SQUAT_FLAPPY_ORIGIN}/play`;
 
 export type SiblingSurface = "wipeout" | "victory";
 
-/** Short geometric-fun copy — not VectorCare. */
-export function siblingPromoCopy(surface: SiblingSurface): string {
-  return surface === "victory"
-    ? "Also try Squat Flappy"
-    : "Standing desk? Try Squat Flappy";
+/** Growth copy lock — same line on all Push wipeout / challenge surfaces. */
+export const SIBLING_PROMO_COPY = "Arms cooked? Legs next → squatflappy.com";
+
+export function siblingPromoCopy(_surface?: SiblingSurface): string {
+  return SIBLING_PROMO_COPY;
 }
