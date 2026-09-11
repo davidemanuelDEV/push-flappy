@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import DailyBoardPage from "@/components/DailyBoardPage";
 
 const SITE = "https://pushflappy.com";
+const ogImage = new URL("/api/og", SITE).toString();
 
 export const metadata: Metadata = {
   title: "Daily board — Push Flappy",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     siteName: "Push Flappy",
     images: [
       {
-        url: "/og.png",
+        url: ogImage,
         width: 1200,
         height: 630,
         alt: "Push Flappy daily board",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
     title: "Daily board — Push Flappy",
     description:
       "Today’s Push Flappy daily board (Pacific pipe seed). No camera required.",
-    images: ["/og.png"],
+    images: [ogImage],
   },
 };
 

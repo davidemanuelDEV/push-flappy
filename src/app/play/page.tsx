@@ -29,6 +29,8 @@ export async function generateMetadata({
   const beat = parseNonNegInt(first(sp.beat));
   const reps = parseNonNegInt(first(sp.reps));
 
+  const ogImage = new URL("/api/og", SITE);
+
   if (beat == null) {
     return {
       title: "Play — Push Flappy",
@@ -43,7 +45,7 @@ export async function generateMetadata({
         siteName: "Push Flappy",
         images: [
           {
-            url: "/og.png",
+            url: ogImage.toString(),
             width: 1200,
             height: 630,
             alt: "Push Flappy",
@@ -55,7 +57,7 @@ export async function generateMetadata({
         title: "Play — Push Flappy",
         description:
           "Play Push Flappy with push-ups. Camera + on-device pose. Challenge friends with beat-me links.",
-        images: ["/og.png"],
+        images: [ogImage.toString()],
       },
     };
   }
@@ -67,9 +69,8 @@ export async function generateMetadata({
   playUrl.searchParams.set("beat", String(beat));
   if (reps != null && reps > 0) playUrl.searchParams.set("reps", String(reps));
 
-  const ogPath = new URL("/api/og", SITE);
-  ogPath.searchParams.set("beat", String(beat));
-  if (reps != null && reps > 0) ogPath.searchParams.set("reps", String(reps));
+  ogImage.searchParams.set("beat", String(beat));
+  if (reps != null && reps > 0) ogImage.searchParams.set("reps", String(reps));
 
   return {
     title,
@@ -82,7 +83,7 @@ export async function generateMetadata({
       siteName: "Push Flappy",
       images: [
         {
-          url: ogPath.toString(),
+          url: ogImage.toString(),
           width: 1200,
           height: 630,
           alt: title,
@@ -93,7 +94,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: [ogPath.toString()],
+      images: [ogImage.toString()],
     },
   };
 }
