@@ -1,6 +1,7 @@
 /**
  * Classic Flappy pipe scrolling + collision.
  * Bird Y is driven externally (pose), not by gravity.
+ * Pipe gaps use a seeded RNG so daily runs are comparable.
  */
 
 import {
@@ -14,6 +15,8 @@ import {
   PIPE_SPEED,
   PIPE_WIDTH_FRAC,
 } from "./constants";
+import { dailyPipeSeed, laDayKey } from "./daily";
+import { type Rng, rngFromString } from "./rng";
 
 export type Pipe = {
   /** Left edge X in canvas pixels */
@@ -31,13 +34,21 @@ export type GameState = {
   highScore: number;
   width: number;
   height: number;
+  /** LA calendar day for this run's pipe seed */
+  dayKey: string;
+  /** Seed string used for pipe RNG */
+  seed: string;
+  /** Next pipe index into the seeded stream (for debugging / sync) */
+  pipeIndex: number;
 };
 
 export function createInitialState(
   width: number,
   height: number,
-  highScore: number
+  highScore: number,
+  dayKey: string = laDayKey()
 ): GameState {
+  const seed = dailyPipeSeed(dayKey);
   return {
     status: "ready",
     birdY: height * 0.5,
@@ -46,14 +57,24 @@ export function createInitialState(
     highScore,
     width,
     height,
+    dayKey,
+    seed,
+    pipeIndex: 0,
   };
 }
 
-function randomGapY(height: number, gap: number): number {
+function randomGapY(height: number, gap: number, rng: Rng): number {
   const margin = gap * 0.55 + height * 0.08;
   const min = margin;
   const max = height - margin;
-  return min + Math.random() * (max - min);
+  return min + rng() * (max - min);
+}
+
+/** Advance RNG `n` times so pipeIndex stays aligned after restarts mid-day. */
+function rngAt(seed: string, pipeIndex: number): Rng {
+  const rng = rngFromString(seed);
+  for (let i = 0; i < pipeIndex; i++) rng();
+  return rng;
 }
 
 /** Slightly larger gap on short/narrow canvases for fairer phone play. */
@@ -64,12 +85,20 @@ export function pipeGapFrac(width: number, height: number): number {
   return PIPE_GAP_FRAC;
 }
 
-export function spawnPipe(state: GameState, x?: number): Pipe {
+export function spawnPipe(
+  state: GameState,
+  x?: number
+): { pipe: Pipe; nextIndex: number } {
   const gap = state.height * pipeGapFrac(state.width, state.height);
+  const rng = rngAt(state.seed, state.pipeIndex);
+  const gapY = randomGapY(state.height, gap, rng);
   return {
-    x: x ?? state.width + 20,
-    gapY: randomGapY(state.height, gap),
-    scored: false,
+    pipe: {
+      x: x ?? state.width + 20,
+      gapY,
+      scored: false,
+    },
+    nextIndex: state.pipeIndex + 1,
   };
 }
 
@@ -77,11 +106,26 @@ export function spawnPipe(state: GameState, x?: number): Pipe {
 export function startGame(state: GameState): GameState {
   const spacing = state.width * PIPE_SPACING;
   const pipes: Pipe[] = [];
+  let pipeIndex = 0;
+  let working: GameState = { ...state, pipeIndex: 0, pipes: [] };
   for (let i = 0; i < 3; i++) {
-    pipes.push(spawnPipe(state, state.width * 0.75 + i * spacing));
+    const { pipe, nextIndex } = spawnPipe(
+      working,
+      state.width * 0.75 + i * spacing
+    );
+    pipes.push(pipe);
+    pipeIndex = nextIndex;
+    working = { ...working, pipeIndex, pipes };
   }
-  // Keep current birdY (calibrated plank maps near top) instead of snapping mid-screen
-  return { ...state, status: "playing", score: 0, pipes };
+  return {
+    ...state,
+    status: "playing",
+    score: 0,
+    pipes,
+    pipeIndex,
+    dayKey: state.dayKey || laDayKey(),
+    seed: state.seed || dailyPipeSeed(state.dayKey || laDayKey()),
+  };
 }
 
 export function birdRadius(height: number): number {
@@ -120,6 +164,7 @@ export function tick(state: GameState, dt: number, birdY: number): GameState {
 
   let pipes = state.pipes.map((p) => ({ ...p, x: p.x - speed * dt }));
   let score = state.score;
+  let pipeIndex = state.pipeIndex;
 
   // Score when bird clears pipe
   for (const p of pipes) {
@@ -134,7 +179,12 @@ export function tick(state: GameState, dt: number, birdY: number): GameState {
   while (pipes.length < 3) {
     const last = pipes[pipes.length - 1];
     const nx = last ? last.x + spacing : w + 20;
-    pipes.push(spawnPipe(state, nx));
+    const { pipe, nextIndex } = spawnPipe(
+      { ...state, pipeIndex, pipes },
+      nx
+    );
+    pipes.push(pipe);
+    pipeIndex = nextIndex;
   }
 
   // Collision: bird vs pipes + floor/ceiling soft bounds already via birdY clamp
@@ -158,8 +208,16 @@ export function tick(state: GameState, dt: number, birdY: number): GameState {
   const highScore = Math.max(state.highScore, score);
 
   if (hit) {
-    return { ...state, birdY: by, pipes, score, highScore, status: "over" };
+    return {
+      ...state,
+      birdY: by,
+      pipes,
+      score,
+      highScore,
+      pipeIndex,
+      status: "over",
+    };
   }
 
-  return { ...state, birdY: by, pipes, score, highScore };
+  return { ...state, birdY: by, pipes, score, highScore, pipeIndex };
 }
