@@ -3,40 +3,54 @@
 import { useCallback, useEffect, useState } from "react";
 import { laDayKey } from "@/lib/daily";
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
+import { RACE_NICK_CAP } from "@/lib/race";
 
 const POLL_MS = 8_000;
-const MAX_ROWS = 8;
+const DAILY_MAX_ROWS = 8;
+
+type OverlayRow = Pick<LeaderboardEntry, "nick" | "emoji" | "score" | "at" | "country">;
 
 /**
- * Read-only daily board for a second OBS Browser Source.
- * Polls GET /api/leaderboard — no camera, no forms.
+ * Read-only board for a second OBS Browser Source.
+ * Daily: polls GET /api/leaderboard. Race: polls GET /api/race/[id].
+ * No camera, no forms.
  */
-export default function StreamOverlay() {
+export default function StreamOverlay({ raceId }: { raceId?: string }) {
   const [dayKey, setDayKey] = useState(laDayKey());
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [entries, setEntries] = useState<OverlayRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const day = laDayKey();
-      const res = await fetch(`/api/leaderboard?day=${encodeURIComponent(day)}`, {
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(`Board error ${res.status}`);
-      const data = (await res.json()) as {
-        dayKey: string;
-        entries: LeaderboardEntry[];
-      };
-      setDayKey(data.dayKey ?? day);
-      setEntries(data.entries ?? []);
-      setError(null);
+      if (raceId) {
+        const res = await fetch(`/api/race/${encodeURIComponent(raceId)}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`Board error ${res.status}`);
+        const data = (await res.json()) as { entries?: OverlayRow[] };
+        setEntries(data.entries ?? []);
+        setError(null);
+      } else {
+        const day = laDayKey();
+        const res = await fetch(`/api/leaderboard?day=${encodeURIComponent(day)}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`Board error ${res.status}`);
+        const data = (await res.json()) as {
+          dayKey: string;
+          entries: OverlayRow[];
+        };
+        setDayKey(data.dayKey ?? day);
+        setEntries(data.entries ?? []);
+        setError(null);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Board unavailable");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [raceId]);
 
   useEffect(() => {
     document.documentElement.classList.add("overlay-lock");
@@ -53,12 +67,13 @@ export default function StreamOverlay() {
     return () => clearInterval(id);
   }, [load]);
 
-  const rows = entries.slice(0, MAX_ROWS);
+  const maxRows = raceId ? RACE_NICK_CAP : DAILY_MAX_ROWS;
+  const rows = entries.slice(0, maxRows);
 
   return (
     <main className="flex min-h-[100dvh] w-full flex-col justify-center px-5 py-6 text-white">
       <p className="text-[clamp(0.7rem,1.6vw,0.95rem)] font-bold uppercase tracking-[0.22em] text-amber-400/90">
-        Daily board · {dayKey}
+        {raceId ? `Race · ${raceId}` : `Daily board · ${dayKey}`}
       </p>
       <h1 className="font-display mt-1 text-[clamp(1.6rem,4vw,2.6rem)] font-bold tracking-tight text-amber-50">
         Push Flappy
@@ -72,7 +87,7 @@ export default function StreamOverlay() {
       )}
       {!loading && !error && rows.length === 0 && (
         <p className="mt-6 text-xl font-semibold text-stone-300">
-          Board is empty today
+          {raceId ? "Waiting for scores" : "Board is empty today"}
         </p>
       )}
 

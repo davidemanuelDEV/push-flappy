@@ -1,6 +1,6 @@
 # Stream Push Flappy (OBS)
 
-Phase 1 streamer pack — play view + optional board widget. Chat `!beat` bots and live race boards are later.
+Phase 1 streamer pack — play view + optional board widget. Chat `!beat` bots stay out of scope. Race overlay is a second Browser Source (no Twitch Extension).
 
 ## Browser Source (play)
 
@@ -30,6 +30,15 @@ Streamer can also load a target on the capture:
 
 **URL:** [https://pushflappy.com/overlay](https://pushflappy.com/overlay)  
 Suggested size: `480 × 1080` (sidebar) or `720 × 720`. No camera. Polls `GET /api/leaderboard` for today’s Pacific board.
+
+### Race board (same idea)
+
+Mint a race at [https://pushflappy.com/race](https://pushflappy.com/race), then add:
+
+**URL:** `https://pushflappy.com/race/{id}/overlay`  
+(or `/race/{id}?obs=1`)
+
+Polls `GET /api/race/{id}` — latest score per nick, cap 10. Viewers join via the same `/race/{id}` link on their phone (`/play?race={id}`). Async scores, not lockstep frames.
 
 ## Docs in the app
 

@@ -23,6 +23,7 @@ export type SharePayload = {
 export function playUrl(opts?: {
   beat?: number;
   reps?: number;
+  race?: string;
   origin?: string;
 }): string {
   const origin = opts?.origin ?? SITE_ORIGIN;
@@ -33,7 +34,15 @@ export function playUrl(opts?: {
   if (opts?.reps != null && opts.reps > 0) {
     u.searchParams.set("reps", String(Math.floor(opts.reps)));
   }
+  if (opts?.race) {
+    u.searchParams.set("race", opts.race);
+  }
   return u.toString();
+}
+
+export function raceShareUrl(id: string, origin?: string): string {
+  const base = origin ?? SITE_ORIGIN;
+  return `${base}/race/${id}`;
 }
 
 export function parseBeatFromSearch(
@@ -108,14 +117,51 @@ export function beatThemShareTextNoUrl(opts: {
   return `Just beat your ${opts.theirScore} — scored ${opts.yourScore}${repsBit(opts.reps)} on Push Flappy! 💪 Your move`;
 }
 
+export function raceShareText(opts: {
+  score: number;
+  reps?: number;
+  wipeoutLine?: string | null;
+  url: string;
+}): string {
+  return `Race me on Push Flappy — I scored ${opts.score}${repsBit(opts.reps)}. Same pipes, live board.${wipeBit(opts.wipeoutLine)} ${opts.url}`;
+}
+
+export function raceShareTextNoUrl(opts: {
+  score: number;
+  reps?: number;
+  wipeoutLine?: string | null;
+}): string {
+  return `Race me on Push Flappy — I scored ${opts.score}${repsBit(opts.reps)}. Same pipes, live board.${wipeBit(opts.wipeoutLine)}`;
+}
+
 export function buildSharePayload(opts: {
   mode: "challenge" | "victory";
   score: number;
   reps?: number;
   wipeoutLine?: string | null;
   beatTarget?: number | null;
+  raceId?: string | null;
   origin?: string;
 }): SharePayload {
+  if (opts.raceId) {
+    const url = raceShareUrl(opts.raceId, opts.origin);
+    return {
+      url,
+      mode: "challenge",
+      text: raceShareText({
+        score: opts.score,
+        reps: opts.reps,
+        wipeoutLine: opts.wipeoutLine,
+        url,
+      }),
+      textNoUrl: raceShareTextNoUrl({
+        score: opts.score,
+        reps: opts.reps,
+        wipeoutLine: opts.wipeoutLine,
+      }),
+    };
+  }
+
   const url = playUrl({
     beat: opts.score,
     reps: opts.reps,

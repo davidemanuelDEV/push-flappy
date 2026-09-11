@@ -26,7 +26,7 @@ npm run build && npm start
 
 ### Beat-me challenges
 - On wipeout, the run is **POSTed once** to `/api/leaderboard` automatically (saved nick/emoji, default Anon / 🐦). The wipeout Post CTA shows **Posted** / disabled after success — Challenge a friend stays the filled primary.
-- On wipeout, **Share challenge** builds a deep link: `https://pushflappy.com/play?beat={score}` (optional `&reps=`).
+- On wipeout, **Share challenge** builds a deep link: `https://pushflappy.com/play?beat={score}` (optional `&reps=`). In a race, the primary CTA shares the race link instead (`/race/{id}`).
 - Share text includes score + wipeout quip + dare CTA. Prefer `navigator.share`; clipboard fallback.
 - Opening `/play?beat=N` shows a **bar-to-beat** in the HUD. Clearing a higher score triggers a **you beat them** share prompt.
 - Wipeout / victory share UI includes a secondary **Squat Flappy** outline row under Challenge a friend (Growth lock: “Arms cooked? Legs next → squatflappy.com”) → `https://squatflappy.com/play`.
@@ -36,6 +36,13 @@ npm run build && npm start
 ### Daily seeded runs
 - Pipe gap RNG is seeded from the calendar day in **America/Los_Angeles** (`YYYY-MM-DD`).
 - Everyone faces the same pipe layout that day → scores are comparable on the daily board.
+
+### Race (async lobby)
+- `/race` mints a short id and copies `https://pushflappy.com/race/{id}`.
+- `/race/[id]` is the dare-first page: nick + Play (`/play?race={id}`) + live top-10 (polls). Spectators need no camera.
+- Same pipe seed for everyone in that race. Wipeout auto-posts latest score per nick (cap 10). Not frame-sync.
+- OBS: `/race/[id]/overlay` or `/race/[id]?obs=1` — big ranks, no camera.
+- Persistence: same Blob / KV / memory backends as the daily board (`push-flappy/race/{id}.json`).
 
 ### Leaderboard API
 - `GET /api/leaderboard?day=YYYY-MM-DD` — top scores for that day.
@@ -95,7 +102,7 @@ In the Vercel dashboard: connect a **private Blob** store (or **Storage → KV /
 
 ### Growth analytics
 - `@vercel/analytics` + `@vercel/speed-insights` in the root layout (free tier).
-- Client events: `play_start`, `play_wipeout`, `challenge_open` (beat), `share_click` (channel wa|x|copy|native|card), `board_submit`, `reminder_optin`, `sibling_click` (`from: push`, `surface: wipeout|victory|landing|play`).
+- Client events: `play_start`, `play_wipeout`, `challenge_open` (beat), `share_click` (channel wa|x|copy|native|card), `board_submit`, `reminder_optin`, `sibling_click` (`from: push`, `surface: wipeout|victory|landing|play`), `race_create`, `race_join`, `race_score`, `race_share`.
 - Optional `GET /api/stats` — `{ dayKey, boardEntriesToday, reminderCount, storage, demoAllowed }` (no PII).
 
 ## Phone / HTTPS
@@ -136,6 +143,7 @@ OBS pack (Phase 1). Full setup: [STREAMERS.md](./STREAMERS.md).
 - **Chest/cam:** phone face-up on the floor, or webcam on a plank — allow camera, hold the top of a push-up; existing 3-2-1 starts on its own
 - **Viewer dare:** chat opens the beat-me link on their phone (`/play?beat={score}`)
 - **Optional second source:** [https://pushflappy.com/overlay](https://pushflappy.com/overlay) — read-only daily board, no camera
+- **Race overlay:** [https://pushflappy.com/race/{id}/overlay](https://pushflappy.com/race) — live race top-10, no camera
 
 Do not add paid Twitch Extensions or a `!beat` bot here.
 
@@ -147,6 +155,11 @@ Do not add paid Twitch Extensions or a `!beat` bot here.
 | `/play` | Fullscreen camera game (`?beat=N` challenge; `?obs=1` capture chrome) |
 | `/stream` | OBS play view (same game, no marketing chrome, larger HUD) |
 | `/overlay` | Read-only daily board widget for a second Browser Source |
+| `/race` | Mint a race link |
+| `/race/[id]` | Join + live top-10 (camera-free spectate). `?obs=1` = overlay |
+| `/race/[id]/overlay` | OBS race board, no chrome |
 | `/api/leaderboard` | Daily board GET/POST |
+| `/api/race` | `POST` mint / ensure a race |
+| `/api/race/[id]` | `GET` board; `POST` score |
 | `/api/reminders` | Email reminder capture POST |
 | `/board` | Camera-free daily board + reminder opt-in |
