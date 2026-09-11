@@ -127,12 +127,26 @@ Phone browsers require **HTTPS** (or localhost) for `getUserMedia`. Deploy to Ve
 - Optional Resend (`RESEND_API_KEY`) for welcome mail; otherwise capture-only
 - No accounts, no company branding
 
+## Streamers (OBS)
+
+OBS pack (Phase 1). Full setup: [STREAMERS.md](./STREAMERS.md).
+
+- **Play Browser Source:** [https://pushflappy.com/stream](https://pushflappy.com/stream) (same as `/play?obs=1`)
+- **Recommended size:** 1920×1080
+- **Chest/cam:** phone face-up on the floor, or webcam on a plank — allow camera, hold the top of a push-up; existing 3-2-1 starts on its own
+- **Viewer dare:** chat opens the beat-me link on their phone (`/play?beat={score}`)
+- **Optional second source:** [https://pushflappy.com/overlay](https://pushflappy.com/overlay) — read-only daily board, no camera
+
+Do not add paid Twitch Extensions or a `!beat` bot here.
+
 ## Routes
 
 | Path | Description |
 |------|-------------|
 | `/` | Marketing / how-to-play + Start CTA |
-| `/play` | Fullscreen camera game (`?beat=N` challenge) |
+| `/play` | Fullscreen camera game (`?beat=N` challenge; `?obs=1` capture chrome) |
+| `/stream` | OBS play view (same game, no marketing chrome, larger HUD) |
+| `/overlay` | Read-only daily board widget for a second Browser Source |
 | `/api/leaderboard` | Daily board GET/POST |
 | `/api/reminders` | Email reminder capture POST |
 | `/board` | Camera-free daily board + reminder opt-in |

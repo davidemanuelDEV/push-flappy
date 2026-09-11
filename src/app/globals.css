@@ -42,6 +42,13 @@ body.play-lock {
   height: 100%;
 }
 
+/* OBS board widget — dark (OBS can still override to transparent) */
+html.overlay-lock,
+body.overlay-lock {
+  background: #050403;
+  background-image: none;
+}
+
 /* Landing hero motion — subtle, respects reduced motion */
 @keyframes pf-float {
   0%,
