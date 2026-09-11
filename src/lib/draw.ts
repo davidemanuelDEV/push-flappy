@@ -128,7 +128,8 @@ export function drawBird(
 export function drawHud(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  reps: number
+  reps: number,
+  beatTarget?: number | null
 ) {
   const { width: w } = state;
   ctx.save();
@@ -138,13 +139,44 @@ export function drawHud(
   ctx.strokeStyle = "rgba(0,0,0,0.55)";
   ctx.lineWidth = 4;
   const scoreText = String(state.score);
-  ctx.strokeText(scoreText, w / 2, Math.max(48, w * 0.08));
-  ctx.fillText(scoreText, w / 2, Math.max(48, w * 0.08));
+  const scoreY = Math.max(48, w * 0.08);
+  ctx.strokeText(scoreText, w / 2, scoreY);
+  ctx.fillText(scoreText, w / 2, scoreY);
 
   ctx.font = `${Math.max(12, w * 0.032)}px system-ui, sans-serif`;
   ctx.lineWidth = 3;
   const sub = `Best ${state.highScore} · Reps ${reps}`;
-  ctx.strokeText(sub, w / 2, Math.max(72, w * 0.12));
-  ctx.fillText(sub, w / 2, Math.max(72, w * 0.12));
+  const subY = Math.max(72, w * 0.12);
+  ctx.strokeText(sub, w / 2, subY);
+  ctx.fillText(sub, w / 2, subY);
+
+  // Beat-me ghost bar under the score
+  if (beatTarget != null && beatTarget >= 0) {
+    const barW = Math.min(w * 0.55, 220);
+    const barH = Math.max(8, w * 0.014);
+    const barX = (w - barW) / 2;
+    const barY = subY + Math.max(10, w * 0.02);
+    const progress =
+      beatTarget <= 0 ? 1 : Math.min(1, state.score / beatTarget);
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle =
+      state.score > beatTarget ? "rgba(52,211,153,0.95)" : "rgba(251,191,36,0.9)";
+    ctx.fillRect(barX, barY, barW * progress, barH);
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    ctx.font = `600 ${Math.max(11, w * 0.028)}px system-ui, sans-serif`;
+    ctx.fillStyle =
+      state.score > beatTarget ? "#6ee7b7" : "#fde68a";
+    ctx.lineWidth = 3;
+    const label =
+      state.score > beatTarget
+        ? `Beat ${beatTarget}!`
+        : `Beat ${beatTarget}`;
+    ctx.strokeText(label, w / 2, barY + barH + Math.max(14, w * 0.032));
+    ctx.fillText(label, w / 2, barY + barH + Math.max(14, w * 0.032));
+  }
   ctx.restore();
 }

@@ -38,6 +38,16 @@ export default function HomePage() {
           </p>
         </div>
 
+        <div className="rounded-2xl border border-zinc-700/80 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-300">
+          <p className="font-semibold text-zinc-100">Challenges &amp; daily board</p>
+          <p className="mt-1 leading-relaxed text-zinc-400">
+            Wipe out, then <strong className="font-medium text-zinc-200">share a beat-me link</strong> —
+            friends open the same score to beat. Everyone gets the{" "}
+            <strong className="font-medium text-zinc-200">same pipe seed per day</strong> (Pacific time)
+            so the daily leaderboard is fair. Anonymous nick + emoji — no accounts.
+          </p>
+        </div>
+
         {/* Mini preview art */}
         <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-b from-sky-900/40 to-emerald-950/50 p-6">
           <div className="flex items-center justify-center gap-6">
@@ -77,7 +87,7 @@ export default function HomePage() {
               bird up.
             </li>
             <li>Clear the gaps in the scrolling copper pipes to score.</li>
-            <li>Share your score when you wipe out.</li>
+            <li>Share a beat-me challenge or post to the daily board when you wipe out.</li>
           </ol>
         </section>
       </div>
