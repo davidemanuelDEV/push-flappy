@@ -26,20 +26,20 @@ export default function IosInstallTip() {
   if (!show) return null;
 
   return (
-    <div className="rounded-2xl border border-zinc-700/70 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-300">
+    <div className="rounded-2xl border border-amber-900/45 bg-stone-900/70 px-4 py-3 text-sm text-stone-300">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-semibold text-zinc-100">Add to Home Screen</p>
-          <p className="mt-1 leading-relaxed text-zinc-400">
-            In Safari, tap <span className="text-zinc-200">Share</span> →{" "}
-            <span className="text-zinc-200">Add to Home Screen</span> for a
+          <p className="font-semibold text-amber-50">Add to Home Screen</p>
+          <p className="mt-1 leading-relaxed text-stone-400">
+            In Safari, tap <span className="text-amber-100">Share</span> →{" "}
+            <span className="text-amber-100">Add to Home Screen</span> for a
             full-screen app icon.
           </p>
         </div>
         <button
           type="button"
           aria-label="Dismiss"
-          className="min-h-11 min-w-11 shrink-0 rounded-xl text-zinc-500 hover:text-zinc-200"
+          className="min-h-11 min-w-11 shrink-0 rounded-xl text-stone-500 hover:text-amber-100"
           onClick={() => {
             try {
               localStorage.setItem("pf-ios-tip-dismissed", "1");

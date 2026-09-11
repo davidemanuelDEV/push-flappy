@@ -81,13 +81,13 @@ export default function ReminderCapture({
   return (
     <form
       onSubmit={onSubmit}
-      className={`rounded-xl border border-zinc-700/80 bg-zinc-950/50 ${
+      className={`rounded-xl border border-amber-900/50 bg-stone-950/50 ${
         compact ? "px-3 py-2.5" : "px-3.5 py-3"
       } ${className}`}
     >
       <label
         htmlFor={`reminder-email-${source}`}
-        className="block text-left text-[11px] font-semibold text-zinc-300 sm:text-xs"
+        className="block text-left text-[11px] font-semibold text-stone-300 sm:text-xs"
       >
         Get reminder to challenge again
       </label>
@@ -103,12 +103,12 @@ export default function ReminderCapture({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@email.com"
           disabled={status === "loading"}
-          className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-lg border border-amber-900/50 bg-stone-950 px-2.5 py-2 text-sm text-stone-100 placeholder:text-stone-600 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={status === "loading" || !email.trim()}
-          className="shrink-0 rounded-lg bg-zinc-100 px-3 py-2 text-sm font-bold text-zinc-950 disabled:opacity-40"
+          className="shrink-0 rounded-lg bg-zinc-100 px-3 py-2 text-sm font-bold text-stone-950 disabled:opacity-40"
         >
           {status === "loading" ? "…" : "Submit"}
         </button>
@@ -117,7 +117,7 @@ export default function ReminderCapture({
         <p className="mt-1.5 text-left text-[11px] text-rose-300">{error}</p>
       )}
       {!compact && (
-        <p className="mt-1.5 text-left text-[10px] leading-snug text-zinc-500">
+        <p className="mt-1.5 text-left text-[10px] leading-snug text-stone-500">
           No accounts. Challenge &amp; daily board nudges only.
         </p>
       )}

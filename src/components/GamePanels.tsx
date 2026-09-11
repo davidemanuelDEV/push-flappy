@@ -79,7 +79,7 @@ export function ReadyPanel({
 }) {
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-sm rounded-2xl bg-zinc-900/92 p-4 text-center shadow-xl backdrop-blur-md sm:p-5">
+      <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-amber-900/40 bg-stone-950/92 p-4 text-center shadow-xl backdrop-blur-md sm:p-5">
         <h2 className="text-lg font-bold sm:text-xl">Ready?</h2>
         {beatTarget != null && beatTarget >= 0 && (
           <p className="mt-1 rounded-xl bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-200">
@@ -178,8 +178,8 @@ export function GameOverPanel({
 
   return (
     <div className="absolute inset-0 z-10 flex items-end justify-center bg-gradient-to-t from-black/75 via-black/45 to-black/25 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:bg-black/55 sm:p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-zinc-900/95 p-5 text-center shadow-xl backdrop-blur-md sm:p-6">
-        <p className="text-sm uppercase tracking-wide text-zinc-400">
+      <div className="w-full max-w-sm rounded-2xl border border-amber-900/45 bg-stone-950/95 p-5 text-center shadow-xl backdrop-blur-md sm:p-6">
+        <p className="text-sm uppercase tracking-wide text-amber-200/60">
           Game over
         </p>
         <p className="mt-1 text-5xl font-black tabular-nums">{score}</p>
@@ -197,7 +197,7 @@ export function GameOverPanel({
           </p>
         )}
         {wipeoutLine && (
-          <p className="mt-3 rounded-xl bg-zinc-800/80 px-3 py-2 text-sm font-medium leading-snug text-amber-200/95">
+          <p className="mt-3 rounded-xl bg-amber-950/50 px-3 py-2 text-sm font-medium leading-snug text-amber-200/95">
             {wipeoutLine}
           </p>
         )}
@@ -239,7 +239,7 @@ export function GameOverPanel({
               label="Copy"
               title="Copy beat-me link"
               onClick={onCopyLink}
-              className="bg-zinc-700 text-white"
+              className="bg-stone-700 text-white"
             >
               🔗
             </ShareActionButton>
@@ -255,7 +255,7 @@ export function GameOverPanel({
               label="More…"
               title="More share options"
               onClick={onShareMore}
-              className="bg-zinc-600 text-white"
+              className="bg-stone-600 text-white"
             >
               ⋯
             </ShareActionButton>
@@ -265,7 +265,7 @@ export function GameOverPanel({
           <button
             type="button"
             onClick={onOpenBoard}
-            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-zinc-700 px-4 py-3 font-semibold"
+            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-700 px-4 py-3 font-semibold"
           >
             View daily board
           </button>
@@ -334,11 +334,11 @@ export function LeaderboardPanel({
     <div
       className={
         isPage
-          ? "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-xl"
-          : "flex max-h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-zinc-900 shadow-xl"
+          ? "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-amber-900/40 bg-stone-950 shadow-xl"
+          : "flex max-h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-amber-900/35 bg-stone-950 shadow-xl"
       }
     >
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-amber-950/80 px-4 py-3">
         <div>
           <p className="text-sm font-bold">Daily board</p>
           <p className="text-[11px] text-zinc-400">
@@ -348,7 +348,7 @@ export function LeaderboardPanel({
         {isPage ? (
           <Link
             href="/"
-            className="inline-flex min-h-10 items-center justify-center rounded-full bg-zinc-800 px-3 text-xs font-semibold"
+            className="inline-flex min-h-10 items-center justify-center rounded-full bg-stone-800 px-3 text-xs font-semibold"
           >
             Home
           </Link>
@@ -356,7 +356,7 @@ export function LeaderboardPanel({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full bg-zinc-800 text-sm"
+            className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full bg-stone-800 text-sm"
           >
             ✕
           </button>
@@ -379,7 +379,7 @@ export function LeaderboardPanel({
           {entries.map((e, i) => (
             <li
               key={`${e.nick}-${e.at}-${e.country ?? "XX"}`}
-              className="flex items-center gap-2 rounded-xl bg-zinc-800/70 px-3 py-2"
+              className="flex items-center gap-2 rounded-xl bg-stone-900/80 px-3 py-2"
             >
               <span className="w-6 text-xs font-bold text-zinc-500">{i + 1}</span>
               <span className="text-lg" aria-hidden>
@@ -414,7 +414,7 @@ export function LeaderboardPanel({
         </ol>
       </div>
 
-      <div className="space-y-2 border-t border-zinc-800 px-4 py-3">
+      <div className="space-y-2 border-t border-amber-950/80 px-4 py-3">
         {isPage && (
           <ReminderCapture source="board" className="mb-1" />
         )}
@@ -429,7 +429,7 @@ export function LeaderboardPanel({
                 aria-label="Emoji"
                 value={emoji}
                 onChange={(e) => onEmoji(e.target.value)}
-                className="w-14 rounded-xl border border-zinc-700 bg-zinc-950 px-2 py-2 text-center text-lg"
+                className="w-14 rounded-xl border border-amber-900/50 bg-stone-950 px-2 py-2 text-center text-lg"
                 maxLength={4}
               />
               <input
@@ -437,7 +437,7 @@ export function LeaderboardPanel({
                 value={nick}
                 onChange={(e) => onNick(e.target.value)}
                 placeholder="Nick"
-                className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+                className="min-w-0 flex-1 rounded-xl border border-amber-900/50 bg-stone-950 px-3 py-2 text-sm"
                 maxLength={16}
               />
             </div>
@@ -456,7 +456,7 @@ export function LeaderboardPanel({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="flex min-h-11 items-center justify-center rounded-xl bg-zinc-700 px-3 text-sm font-semibold"
+                className="flex min-h-11 items-center justify-center rounded-xl bg-stone-700 px-3 text-sm font-semibold"
               >
                 Refresh
               </button>
@@ -478,7 +478,7 @@ export function LeaderboardPanel({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="flex min-h-11 items-center justify-center rounded-xl bg-zinc-700 px-3 text-sm font-semibold"
+                className="flex min-h-11 items-center justify-center rounded-xl bg-stone-700 px-3 text-sm font-semibold"
               >
                 Refresh
               </button>
@@ -491,7 +491,7 @@ export function LeaderboardPanel({
 
   if (isPage) {
     return (
-      <div className="relative flex min-h-[100dvh] w-full flex-col bg-zinc-950 text-white">
+      <div className="relative flex min-h-[100dvh] w-full flex-col bg-[#120e0c] text-white">
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
           {panel}
         </div>

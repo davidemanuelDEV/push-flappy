@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import RegisterSW from "@/components/RegisterSW";
 import "./globals.css";
 
@@ -11,6 +11,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const display = Fredoka({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 const siteTitle = "Push Flappy — Flappy Bird for push day";
@@ -75,8 +81,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
-    { media: "(prefers-color-scheme: light)", color: "#09090b" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c120c" },
+    { media: "(prefers-color-scheme: light)", color: "#1c120c" },
   ],
   colorScheme: "dark",
 };
@@ -89,7 +95,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-[100dvh] antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${display.variable} min-h-[100dvh] antialiased`}
       >
         {children}
         <RegisterSW />

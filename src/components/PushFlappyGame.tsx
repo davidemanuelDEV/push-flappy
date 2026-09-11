@@ -25,7 +25,7 @@ import {
   type CalibPhase,
   type Landmark,
 } from "@/lib/pose";
-import { drawBird, drawHud, drawPipes } from "@/lib/draw";
+import { drawBird, drawHud, drawPipes, drawPlayfield } from "@/lib/draw";
 import {
   createCrashBurst,
   drawCrash,
@@ -414,8 +414,7 @@ export default function PushFlappyGame() {
       if (crashRef.current) {
         crashRef.current = tickCrash(crashRef.current, dt);
       }
-      ctx.fillStyle = "rgba(0,0,0,0.15)";
-      ctx.fillRect(0, 0, cssW, cssH);
+      drawPlayfield(ctx, cssW, cssH);
       drawPipes(ctx, state);
       const crash = crashRef.current;
       const showBird = state.status !== "over" || (crash != null && crash.age < 0.07);
@@ -625,10 +624,10 @@ export default function PushFlappyGame() {
   }
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden overscroll-none bg-zinc-950 text-white">
+    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden overscroll-none bg-[#0c0a09] text-white">
       <header className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 pointer-events-none">
         <Link href="/" className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">← Home</Link>
-        <div className="rounded-full bg-black/55 px-3 py-2 text-sm font-semibold backdrop-blur-md">Push Flappy</div>
+        <div className="font-display rounded-full bg-stone-950/70 px-3 py-2 text-sm font-bold tracking-tight text-amber-100 backdrop-blur-md">Push Flappy</div>
         <button type="button" onClick={onOpenBoard} className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">Board</button>
       </header>
       <div ref={containerRef} className="relative min-h-0 flex-1 touch-none">

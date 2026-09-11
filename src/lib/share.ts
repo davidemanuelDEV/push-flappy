@@ -1,3 +1,5 @@
+import { drawBirdAt } from "./draw";
+
 /**
  * Beat-me deep links + platform share helpers (WhatsApp, X, copy, card, native).
  */
@@ -253,60 +255,74 @@ export function renderShareCard(opts: {
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  const g = ctx.createLinearGradient(0, 0, size, size);
-  g.addColorStop(0, "#18181b");
-  g.addColorStop(0.45, "#292524");
-  g.addColorStop(1, "#422006");
+
+  // Dusk gym gradient
+  const g = ctx.createLinearGradient(0, 0, 0, size);
+  g.addColorStop(0, "#0c122a");
+  g.addColorStop(0.4, "#1c1624");
+  g.addColorStop(0.75, "#3a2012");
+  g.addColorStop(1, "#2a180a");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
 
-  // Soft copper glow
-  const glow = ctx.createRadialGradient(540, 320, 40, 540, 320, 420);
-  glow.addColorStop(0, "rgba(184,115,51,0.45)");
+  // Soft copper glow behind bird
+  const glow = ctx.createRadialGradient(540, 280, 40, 540, 280, 420);
+  glow.addColorStop(0, "rgba(184,115,51,0.5)");
   glow.addColorStop(1, "rgba(184,115,51,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, size, size);
 
-  ctx.fillStyle = "#f59e0b";
-  ctx.font = "600 36px system-ui, sans-serif";
+  // Vignette
+  const vig = ctx.createRadialGradient(540, 480, 120, 540, 540, 780);
+  vig.addColorStop(0, "rgba(0,0,0,0)");
+  vig.addColorStop(1, "rgba(8,6,4,0.55)");
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, size, size);
+
+  // Chunky title
+  ctx.fillStyle = "#fbbf24";
+  ctx.font = "900 44px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("PUSH FLAPPY", size / 2, 160);
+  ctx.fillText("PUSH FLAPPY", size / 2, 120);
 
-  ctx.fillStyle = "#fff";
-  ctx.font = "900 220px system-ui, sans-serif";
-  ctx.fillText(String(opts.score), size / 2, 460);
+  // Bird
+  drawBirdAt(ctx, size / 2, 250, 72, -0.08);
 
-  ctx.fillStyle = "#a1a1aa";
-  ctx.font = "600 40px system-ui, sans-serif";
+  ctx.fillStyle = "#fff8e7";
+  ctx.font = "900 200px system-ui, sans-serif";
+  ctx.fillText(String(opts.score), size / 2, 520);
+
+  ctx.fillStyle = "#d6b896";
+  ctx.font = "700 40px system-ui, sans-serif";
   const sub =
     opts.reps && opts.reps > 0
       ? `${opts.reps} push-ups`
       : "pipes cleared";
-  ctx.fillText(sub, size / 2, 540);
+  ctx.fillText(sub, size / 2, 590);
 
   if (opts.mode === "victory" && opts.beatTarget != null) {
     ctx.fillStyle = "#34d399";
-    ctx.font = "700 48px system-ui, sans-serif";
-    ctx.fillText(`Beat ${opts.beatTarget} ✨`, size / 2, 640);
+    ctx.font = "800 48px system-ui, sans-serif";
+    ctx.fillText(`Beat ${opts.beatTarget} ✨`, size / 2, 680);
   } else if (opts.wipeoutLine) {
     ctx.fillStyle = "#fde68a";
-    ctx.font = "500 36px system-ui, sans-serif";
-    wrapText(ctx, opts.wipeoutLine, size / 2, 640, 860, 44);
+    ctx.font = "600 36px system-ui, sans-serif";
+    wrapText(ctx, opts.wipeoutLine, size / 2, 680, 860, 44);
   }
 
-  ctx.fillStyle = "#e4e4e7";
-  ctx.font = "600 42px system-ui, sans-serif";
+  ctx.fillStyle = "#fff8e7";
+  ctx.font = "800 42px system-ui, sans-serif";
   ctx.fillText(
     opts.mode === "victory"
       ? "Can you take it back?"
       : "Think you can beat me?",
     size / 2,
-    820
+    840
   );
 
-  ctx.fillStyle = "#a1a1aa";
-  ctx.font = "500 32px system-ui, sans-serif";
-  ctx.fillText("pushflappy.com", size / 2, 900);
+  ctx.fillStyle = "#b87333";
+  ctx.font = "700 32px system-ui, sans-serif";
+  ctx.fillText("pushflappy.com", size / 2, 920);
 
   return canvas;
 }

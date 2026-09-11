@@ -22,7 +22,7 @@ export type CrashBurst = {
   flash: number;
 };
 
-const COLORS = ["#e8453c", "#f5c542", "#f0c078", "#fff8e7", "#b87333", "#ff7a59"];
+const COLORS = ["#e8453c", "#c62828", "#f5c542", "#ffe066", "#f0c078", "#fff8e7", "#b87333", "#ff6b5a"];
 
 export function createCrashBurst(x: number, y: number, scale = 1): CrashBurst {
   const n = 18 + Math.floor(Math.random() * 8);
