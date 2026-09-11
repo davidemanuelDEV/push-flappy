@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import IosInstallTip from "@/components/IosInstallTip";
 import ReminderCapture from "@/components/ReminderCapture";
+import { SQUAT_FLAPPY_ORIGIN } from "@/lib/sibling";
 
 export default function HomePage() {
   return (
@@ -216,6 +217,16 @@ export default function HomePage() {
             <Link href="/play" className="underline-offset-2 hover:underline">
               Play
             </Link>
+          </p>
+          <p className="text-[13px] text-stone-400">
+            <a
+              href={SQUAT_FLAPPY_ORIGIN}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-2 hover:text-amber-200/85 hover:underline"
+            >
+              Also play Squat Flappy
+            </a>
           </p>
           <p className="text-[11px] text-stone-600">
             Push Flappy · no accounts · pose stays on your device
