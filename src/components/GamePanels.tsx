@@ -107,6 +107,19 @@ export function ReadyPanel({
                 ? "Start"
                 : "Set start position…"}
         </button>
+        <p className="mt-2.5 text-[11px] text-zinc-500">
+          <Link href="/" className="underline-offset-2 hover:underline">
+            Home
+          </Link>
+          {" · "}
+          <Link href="/faq" className="underline-offset-2 hover:underline">
+            FAQ
+          </Link>
+          {" · "}
+          <Link href="/board" className="underline-offset-2 hover:underline">
+            Board
+          </Link>
+        </p>
       </div>
     </div>
   );
@@ -346,12 +359,20 @@ export function LeaderboardPanel({
           </p>
         </div>
         {isPage ? (
-          <Link
-            href="/"
-            className="inline-flex min-h-10 items-center justify-center rounded-full bg-stone-800 px-3 text-xs font-semibold"
-          >
-            Home
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/faq"
+              className="inline-flex min-h-10 items-center justify-center rounded-full bg-stone-800 px-3 text-xs font-semibold"
+            >
+              FAQ
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex min-h-10 items-center justify-center rounded-full bg-stone-800 px-3 text-xs font-semibold"
+            >
+              Home
+            </Link>
+          </div>
         ) : (
           <button
             type="button"
