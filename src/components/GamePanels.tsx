@@ -263,7 +263,7 @@ export function LeaderboardPanel({
         <div>
           <p className="text-sm font-bold">Daily board</p>
           <p className="text-[11px] text-zinc-400">
-            {dayKey} · PT seed · {storage === "memory" ? "demo store" : "live"}
+            {dayKey} · PT seed · {storage === "memory" ? "demo store" : storage === "kv" ? "live" : "…"}
           </p>
         </div>
         {isPage ? (
