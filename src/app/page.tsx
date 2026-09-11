@@ -6,6 +6,49 @@ import ReminderCapture from "@/components/ReminderCapture";
 export default function HomePage() {
   return (
     <main className="relative mx-auto flex min-h-[100dvh] max-w-lg flex-col px-5 pt-[max(1.75rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            {
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "Push Flappy",
+              url: "https://pushflappy.com",
+              applicationCategory: "GameApplication",
+              operatingSystem: "Web",
+              description:
+                "Push-up camera game — control a bird with your body using on-device pose tracking. No downloads, no accounts.",
+              offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "HowTo",
+              name: "How to play Push Flappy",
+              description:
+                "Play a flappy-style game controlled by push-ups using your phone or webcam camera.",
+              step: [
+                {
+                  "@type": "HowToStep",
+                  name: "Phone on the floor",
+                  text: "Place your phone face-up under you (or use a laptop webcam). Allow the camera — portrait is fine.",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Hold the top of a push-up",
+                  text: "Plank for about a second to lock bird up near the top, then tap Start.",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Clear the copper pipes",
+                  text: "Drop to dive, press up to rise. Gaps scroll past — clear them to score.",
+                },
+              ],
+            },
+          ]),
+        }}
+      />
       {/* Ambient copper / amber glow */}
       <div
         aria-hidden
@@ -67,18 +110,24 @@ export default function HomePage() {
           >
             Start playing
           </Link>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-3 gap-2.5">
             <Link
               href="/board"
-              className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-3 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
+              className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
             >
               Daily board
             </Link>
+            <Link
+              href="/faq"
+              className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
+            >
+              FAQ
+            </Link>
             <a
               href="#challenge"
-              className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-3 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
+              className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
             >
-              Challenge a friend
+              Challenge
             </a>
           </div>
           <p className="text-center text-xs text-stone-500">
@@ -155,6 +204,19 @@ export default function HomePage() {
           >
             Start
           </Link>
+          <p className="text-[11px] text-stone-500">
+            <Link href="/faq" className="underline-offset-2 hover:underline">
+              FAQ
+            </Link>
+            {" · "}
+            <Link href="/board" className="underline-offset-2 hover:underline">
+              Daily board
+            </Link>
+            {" · "}
+            <Link href="/play" className="underline-offset-2 hover:underline">
+              Play
+            </Link>
+          </p>
           <p className="text-[11px] text-stone-600">
             Push Flappy · no accounts · pose stays on your device
           </p>
