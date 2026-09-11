@@ -1,12 +1,13 @@
 /**
  * Challenge reminder email capture.
- * Prefer Vercel KV / Upstash REST when env is set; otherwise in-memory
+ * Prefer Vercel KV / Upstash REST when env is set (`KV_REST_API_*` or
+ * `UPSTASH_REDIS_REST_*`); otherwise in-memory
  * (lost on cold starts / multi-instance — set KV for durability).
  * Does not send mail unless RESEND_API_KEY is present (optional welcome).
  */
 
 import { laDayKey } from "./daily";
-import { allowRequest } from "./leaderboard-store";
+import { allowRequest, kvRestConfig } from "./leaderboard-store";
 
 export type ReminderSource = "gameover" | "board" | "landing";
 
@@ -40,17 +41,15 @@ function memStore(): Map<string, ReminderRecord> {
 }
 
 export function kvConfigured(): boolean {
-  return Boolean(
-    process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
-  );
+  return kvRestConfig() != null;
 }
 
 async function kvCommand<T>(
   ...args: (string | number)[]
 ): Promise<T | null> {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return null;
+  const creds = kvRestConfig();
+  if (!creds) return null;
+  const { url, token } = creds;
   const res = await fetch(`${url}`, {
     method: "POST",
     headers: {

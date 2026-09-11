@@ -25,6 +25,7 @@ npm run build && npm start
 ## Viral sharing & daily board
 
 ### Beat-me challenges
+- On wipeout, the run is **POSTed once** to `/api/leaderboard` automatically (saved nick/emoji, default Anon / 🐦). The wipeout Post CTA shows **Posted** / disabled after success — Challenge a friend stays the filled primary.
 - On wipeout, **Share challenge** builds a deep link: `https://pushflappy.com/play?beat={score}` (optional `&reps=`).
 - Share text includes score + wipeout quip + dare CTA. Prefer `navigator.share`; clipboard fallback.
 - Opening `/play?beat=N` shows a **bar-to-beat** in the HUD. Clearing a higher score triggers a **you beat them** share prompt.
@@ -61,23 +62,28 @@ npm run build && npm start
 |---------|---------|
 | `KV_REST_API_URL` | Upstash / Vercel KV REST URL (required for durable reminder storage) |
 | `KV_REST_API_TOKEN` | REST token |
+| `UPSTASH_REDIS_REST_URL` | Alias for `KV_REST_API_URL` (raw Upstash Redis REST) |
+| `UPSTASH_REDIS_REST_TOKEN` | Alias for `KV_REST_API_TOKEN` |
 | `RESEND_API_KEY` | Optional. If set, sends a one-line welcome. If absent, **capture-only** — wire a cron later to email “Push day — beat today’s board”. |
 | `RESEND_FROM` | Optional From header for Resend (defaults to Resend onboarding address) |
 
 Production paths avoid logging full emails (masked if logged in dev).
 
-#### Persistence (Vercel KV / Upstash)
+#### Persistence (Vercel Blob / KV / Upstash)
 
-When these env vars are set on the Vercel project, scores persist via Redis REST:
+Daily scores persist when any of these are set on the Vercel project:
 
 | Env var | Purpose |
 |---------|---------|
+| `BLOB_READ_WRITE_TOKEN` | Private Vercel Blob store (pathname `push-flappy/lb/{day}.json`) |
 | `KV_REST_API_URL` | Upstash / Vercel KV REST URL |
 | `KV_REST_API_TOKEN` | REST token |
+| `UPSTASH_REDIS_REST_URL` | Alias for `KV_REST_API_URL` (same REST protocol) |
+| `UPSTASH_REDIS_REST_TOKEN` | Alias for `KV_REST_API_TOKEN` |
 
-In the Vercel dashboard: **Storage → Create Database → KV (Upstash)** → connect to the `push-flappy` project (auto-injects the vars), then redeploy.
+Blob wins when `BLOB_READ_WRITE_TOKEN` is set; else a complete `KV_*` or `UPSTASH_REDIS_REST_*` pair. Memory only if none of those are set. Responses include `storage: "blob" | "kv" | "memory"` — wipeout treats any non-memory value as posted.
 
-Without KV, the API still works with an **in-memory** store (lost on cold starts / multi-instance). Responses include `storage: "kv" | "memory"` and `demo: boolean` so Growth can tell honesty from flavor.
+In the Vercel dashboard: connect a **private Blob** store (or **Storage → KV / Upstash**), then redeploy. Never commit `.env.local`.
 
 **Demo seeds:** fake board rows are **off in production** unless `ALLOW_DEMO_LEADERBOARD=1`. In development they still fill an empty board. An empty production board shows clear empty-state copy (not a fake-full list).
 
@@ -85,7 +91,7 @@ Without KV, the API still works with an **in-memory** store (lost on cold starts
 |---------|---------|
 | `ALLOW_DEMO_LEADERBOARD` | Set to `1` to force demo seeds even in production (local/staging only) |
 
-**David / deploy:** set `KV_REST_API_URL` + `KV_REST_API_TOKEN` on the Vercel project for durable board + reminders, then redeploy.
+**David / deploy:** Blob token on the project persists the daily board. Reminders still use the KV / Upstash REST pair.
 
 ### Growth analytics
 - `@vercel/analytics` + `@vercel/speed-insights` in the root layout (free tier).
@@ -117,7 +123,7 @@ Phone browsers require **HTTPS** (or localhost) for `getUserMedia`. Deploy to Ve
 
 - Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4
 - `@mediapipe/tasks-vision` (client-only)
-- Optional Vercel KV / Upstash for the daily board + reminder emails
+- Optional Vercel Blob (daily board) + KV / Upstash (board fallback + reminder emails)
 - Optional Resend (`RESEND_API_KEY`) for welcome mail; otherwise capture-only
 - No accounts, no company branding
 

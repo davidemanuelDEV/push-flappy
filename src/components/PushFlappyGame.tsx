@@ -46,7 +46,10 @@ import {
   xIntentUrl,
   copyToClipboard,
 } from "@/lib/share";
-import type { LeaderboardEntry } from "@/lib/leaderboard-store";
+import type {
+  LeaderboardEntry,
+  LeaderboardStorage,
+} from "@/lib/leaderboard-store";
 import {
   CoachBanner,
   CountdownOverlay,
@@ -119,12 +122,16 @@ export default function PushFlappyGame() {
   const [boardLoading, setBoardLoading] = useState(false);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [boardEntries, setBoardEntries] = useState<LeaderboardEntry[]>([]);
-  const [boardStorage, setBoardStorage] = useState<"kv" | "memory" | null>(null);
+  const [boardStorage, setBoardStorage] = useState<LeaderboardStorage | null>(null);
   const [boardDay, setBoardDay] = useState(laDayKey());
   const [nick, setNick] = useState("Anon");
   const [emoji, setEmoji] = useState("🐦");
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState<string | null>(null);
+  const [scorePosted, setScorePosted] = useState(false);
+  const scorePostedRef = useRef(false);
+  const submittingRef = useRef(false);
+  const autoPostedRef = useRef(false);
 
   useEffect(() => {
     beatTargetRef.current = beatTarget;
@@ -470,6 +477,12 @@ export default function PushFlappyGame() {
     victoryFiredRef.current = false;
     setBeatVictory(false);
     setCountdown(null);
+    autoPostedRef.current = false;
+    scorePostedRef.current = false;
+    submittingRef.current = false;
+    setScorePosted(false);
+    setSubmitMsg(null);
+    setSubmitting(false);
     const day = laDayKey();
     gameRef.current = startGame({
       ...createInitialState(g.width, g.height, loadHighScore(), day),
@@ -522,6 +535,12 @@ export default function PushFlappyGame() {
     setShareStatus(null);
     victoryFiredRef.current = false;
     setBeatVictory(false);
+    autoPostedRef.current = false;
+    scorePostedRef.current = false;
+    submittingRef.current = false;
+    setScorePosted(false);
+    setSubmitMsg(null);
+    setSubmitting(false);
     gameRef.current = { ...createInitialState(g.width, g.height, loadHighScore(), laDayKey()), birdY: g.birdY };
     setUi((u) => ({ ...u, status: "ready", score: 0, reps: 0, highScore: loadHighScore() }));
   };
@@ -650,7 +669,7 @@ export default function PushFlappyGame() {
       setBoardDay(day);
       const res = await fetch(`/api/leaderboard?day=${encodeURIComponent(day)}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Board error ${res.status}`);
-      const data = (await res.json()) as { dayKey: string; entries: LeaderboardEntry[]; storage: "kv" | "memory"; demo?: boolean };
+      const data = (await res.json()) as { dayKey: string; entries: LeaderboardEntry[]; storage: LeaderboardStorage; demo?: boolean };
       setBoardEntries(data.entries ?? []);
       setBoardStorage(data.storage);
       setBoardDay(data.dayKey);
@@ -672,7 +691,9 @@ export default function PushFlappyGame() {
 
   // Legacy ?board=1 is redirected to /board above — do not open overlay or touch camera.
 
-  const onSubmitScore = async () => {
+  const onSubmitScore = useCallback(async () => {
+    if (scorePostedRef.current || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setSubmitMsg(null);
     try {
@@ -682,27 +703,46 @@ export default function PushFlappyGame() {
       } catch {
         /* ignore */
       }
+      const savedNick = nick.trim() || "Anon";
+      const savedEmoji = emoji.trim() || "🐦";
       const res = await fetch("/api/leaderboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nick, emoji, score: ui.score, reps: ui.reps, dayKey: laDayKey() }),
+        body: JSON.stringify({
+          nick: savedNick,
+          emoji: savedEmoji,
+          score: ui.score,
+          reps: ui.reps,
+          dayKey: laDayKey(),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `Submit failed (${res.status})`);
       setBoardEntries(data.entries ?? []);
       setBoardStorage(data.storage);
       track("board_submit", { score: ui.score, reps: ui.reps, storage: data.storage });
+      scorePostedRef.current = true;
+      setScorePosted(true);
       setSubmitMsg(
         data.storage === "memory"
-          ? "Posted (memory — set KV_REST_API_URL + KV_REST_API_TOKEN for persistence)"
+          ? "Posted (memory — set BLOB_READ_WRITE_TOKEN or KV/Upstash REST for persistence)"
           : "Posted to today’s board!"
       );
     } catch (e) {
       setBoardError(e instanceof Error ? e.message : "Submit failed");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
-  };
+  }, [nick, emoji, ui.score, ui.reps]);
+
+  // Auto-POST once when a run ends — Challenge / Play again must not skip the board.
+  useEffect(() => {
+    if (ui.status !== "over") return;
+    if (autoPostedRef.current) return;
+    autoPostedRef.current = true;
+    void onSubmitScore();
+  }, [ui.status, onSubmitScore]);
 
   const startReady = camStatus === "ready" && modelReady && ui.status === "ready";
   const calibSet = calibPhase === "set";
@@ -788,6 +828,9 @@ export default function PushFlappyGame() {
             onSaveCard={onSaveCard}
             onShareMore={onShareMore}
             onOpenBoard={onOpenBoard}
+            scorePosted={scorePosted}
+            scorePosting={submitting}
+            onSubmitScore={() => void onSubmitScore()}
           />
         )}
         <LeaderboardPanel
@@ -803,6 +846,7 @@ export default function PushFlappyGame() {
           reps={ui.reps}
           submitting={submitting}
           submitMsg={submitMsg}
+          scorePosted={scorePosted}
           onNick={setNick}
           onEmoji={setEmoji}
           onClose={() => { setBoardOpen(false); }}

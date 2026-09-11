@@ -6,7 +6,10 @@ import Link from "next/link";
 import ReminderCapture from "@/components/ReminderCapture";
 import SiblingPromo from "@/components/SiblingPromo";
 import type { CalibPhase } from "@/lib/pose";
-import type { LeaderboardEntry } from "@/lib/leaderboard-store";
+import type {
+  LeaderboardEntry,
+  LeaderboardStorage,
+} from "@/lib/leaderboard-store";
 
 type CoachMessage = {
   tone: "amber" | "emerald";
@@ -190,6 +193,8 @@ export function GameOverPanel({
   beatTarget,
   beatVictory,
   shareStatus,
+  scorePosted = false,
+  scorePosting = false,
   onRestart,
   onSharePrimary,
   onShareWhatsApp,
@@ -198,6 +203,7 @@ export function GameOverPanel({
   onSaveCard,
   onShareMore,
   onOpenBoard,
+  onSubmitScore,
 }: {
   score: number;
   highScore: number;
@@ -206,6 +212,8 @@ export function GameOverPanel({
   beatTarget?: number | null;
   beatVictory?: boolean;
   shareStatus?: string | null;
+  scorePosted?: boolean;
+  scorePosting?: boolean;
   onRestart: () => void;
   onSharePrimary: () => void;
   onShareWhatsApp: () => void;
@@ -214,6 +222,7 @@ export function GameOverPanel({
   onSaveCard: () => void;
   onShareMore: () => void;
   onOpenBoard: () => void;
+  onSubmitScore: () => void;
 }) {
   const primaryLabel = beatVictory ? "Your move" : "Challenge a friend";
   const siblingSurface = beatVictory ? "victory" : "wipeout";
@@ -266,8 +275,16 @@ export function GameOverPanel({
         </p>
         <button
           type="button"
+          onClick={onSubmitScore}
+          disabled={scorePosted || scorePosting}
+          className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-700 px-4 py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {scorePosted ? "Posted" : scorePosting ? "Posting…" : "Post your score"}
+        </button>
+        <button
+          type="button"
           onClick={onOpenBoard}
-          className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-700 px-4 py-3 font-semibold"
+          className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-700 px-4 py-3 font-semibold"
         >
           View daily board
         </button>
@@ -344,6 +361,7 @@ export function LeaderboardPanel({
   reps,
   submitting,
   submitMsg,
+  scorePosted = false,
   onNick,
   onEmoji,
   onClose,
@@ -356,7 +374,7 @@ export function LeaderboardPanel({
   open: boolean;
   dayKey: string;
   entries: LeaderboardEntry[];
-  storage: "kv" | "memory" | null;
+  storage: LeaderboardStorage | null;
   loading: boolean;
   error: string | null;
   nick: string;
@@ -365,6 +383,7 @@ export function LeaderboardPanel({
   reps: number;
   submitting: boolean;
   submitMsg: string | null;
+  scorePosted?: boolean;
   onNick: (v: string) => void;
   onEmoji: (v: string) => void;
   onClose: () => void;
@@ -395,7 +414,7 @@ export function LeaderboardPanel({
           <p className="text-sm font-bold">Daily board</p>
           <p className="text-[11px] text-zinc-400">
             {dayKey} · PT seed ·{" "}
-            {storage === "kv"
+            {storage && storage !== "memory"
               ? "live"
               : storage === "memory"
                 ? "memory (not durable)"
@@ -527,10 +546,10 @@ export function LeaderboardPanel({
               <button
                 type="button"
                 onClick={onSubmit}
-                disabled={submitting}
-                className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950 disabled:opacity-50"
+                disabled={submitting || scorePosted}
+                className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {submitting ? "Posting…" : "Post score"}
+                {scorePosted ? "Posted" : submitting ? "Posting…" : "Post score"}
               </button>
               <button
                 type="button"

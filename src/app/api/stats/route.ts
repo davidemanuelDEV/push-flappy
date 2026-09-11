@@ -4,7 +4,6 @@ import {
   allowRequest,
   countRealEntries,
   demoLeaderboardAllowed,
-  kvConfigured,
 } from "@/lib/leaderboard-store";
 import { countReminders } from "@/lib/reminders-store";
 
@@ -37,14 +36,13 @@ export async function GET(req: NextRequest) {
 
   const board = await countRealEntries(day);
   const reminders = await countReminders();
-  const storage: "kv" | "memory" = kvConfigured() ? "kv" : "memory";
 
   return NextResponse.json(
     {
       dayKey: day,
       boardEntriesToday: board.count,
       reminderCount: reminders.count,
-      storage,
+      storage: board.storage,
       demoAllowed: demoLeaderboardAllowed(),
     },
     {
