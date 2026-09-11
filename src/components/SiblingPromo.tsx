@@ -8,8 +8,8 @@ import {
 } from "@/lib/sibling";
 
 /**
- * Light secondary sibling promo — text/link only.
- * Must not compete with Challenge a friend / Your move.
+ * Secondary sibling promo — full-width outline under Challenge a friend.
+ * Must not compete with the primary filled Challenge / Your move CTA.
  */
 export default function SiblingPromo({
   surface,
@@ -19,16 +19,14 @@ export default function SiblingPromo({
   className?: string;
 }) {
   return (
-    <p className={`text-center text-[11px] leading-snug text-zinc-500 ${className}`}>
-      <a
-        href={SQUAT_FLAPPY_PLAY_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => track("sibling_click", { from: "push", surface })}
-        className="font-medium text-amber-200/70 underline-offset-2 hover:text-amber-200 hover:underline"
-      >
-        {siblingPromoCopy()}
-      </a>
-    </p>
+    <a
+      href={SQUAT_FLAPPY_PLAY_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => track("sibling_click", { from: "push", surface })}
+      className={`flex min-h-10 w-full items-center justify-center rounded-xl border border-amber-300/65 bg-transparent px-3 py-2.5 text-center text-sm font-semibold leading-snug text-amber-100 hover:border-amber-200 hover:bg-amber-950/45 hover:text-amber-50 ${className}`}
+    >
+      {siblingPromoCopy()}
+    </a>
   );
 }

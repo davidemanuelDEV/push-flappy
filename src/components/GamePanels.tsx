@@ -242,7 +242,7 @@ export function GameOverPanel({
         >
           {primaryLabel}
         </button>
-        <SiblingPromo surface={siblingSurface} className="mt-2" />
+        <SiblingPromo surface={siblingSurface} className="mt-2.5" />
         <button
           type="button"
           onClick={onRestart}
