@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import IosInstallTip from "@/components/IosInstallTip";
 import ReminderCapture from "@/components/ReminderCapture";
+import SiblingPromoPill from "@/components/SiblingPromoPill";
 import { SQUAT_FLAPPY_ORIGIN } from "@/lib/sibling";
 
 export default function HomePage() {
@@ -63,6 +64,9 @@ export default function HomePage() {
       <div className="relative flex flex-1 flex-col gap-8 sm:gap-10">
         {/* Hero — game pitch, not SaaS */}
         <header className="space-y-4 pt-2 text-center">
+          <div className="flex justify-center">
+            <SiblingPromoPill surface="landing" />
+          </div>
           <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-amber-400/95">
             Push day · Camera game
           </p>
