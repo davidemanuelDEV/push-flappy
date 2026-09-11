@@ -93,19 +93,27 @@ export async function GET(req: NextRequest) {
                 position: "relative",
               }}
             />
+            {/* Satori cannot render CSS border-triangles (they become rectangles). */}
             <div
               style={{
                 position: "absolute",
-                right: 4,
+                right: 0,
                 top: 28,
-                width: 0,
-                height: 0,
-                borderTop: "14px solid transparent",
-                borderBottom: "14px solid transparent",
-                borderLeft: "28px solid #f0c078",
+                width: 32,
+                height: 28,
                 display: "flex",
               }}
-            />
+            >
+              <svg width="32" height="28" viewBox="0 0 32 28">
+                <polygon
+                  points="0,2 32,14 0,26"
+                  fill="#f5c542"
+                  stroke="#7a4e0a"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
             <div
               style={{
                 position: "absolute",
