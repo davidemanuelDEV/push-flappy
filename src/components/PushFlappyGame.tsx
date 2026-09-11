@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FilesetResolver,
@@ -68,11 +68,16 @@ const EMOJI_KEY = "push-flappy-emoji";
 
 export default function PushFlappyGame() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
   const beatChallenge = parseBeatFromSearch(searchParams);
   const beatTarget = beatChallenge?.score ?? null;
   // Deep-link ?board=1 goes to dedicated camera-free /board
   const boardDeepLink = searchParams.get("board") === "1";
+  // /stream and /play?obs=1 — OBS Browser Source crop (no marketing chrome)
+  const obsMode = searchParams.get("obs") === "1" || pathname === "/stream";
+  const obsModeRef = useRef(obsMode);
+  obsModeRef.current = obsMode;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -443,7 +448,9 @@ export default function PushFlappyGame() {
       if (crash) {
         drawCrash(ctx, crash);
       }
-      drawHud(ctx, state, lastPoseSampleRef.current.reps, beatTargetRef.current);
+      drawHud(ctx, state, lastPoseSampleRef.current.reps, beatTargetRef.current, {
+        capture: obsModeRef.current,
+      });
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => {
@@ -495,8 +502,11 @@ export default function PushFlappyGame() {
       reps: 0,
       highScore: loadHighScore(),
     }));
-    track("play_start", beatTarget != null ? { beat: beatTarget } : undefined);
-  }, [beatTarget]);
+    track("play_start", {
+      ...(beatTarget != null ? { beat: beatTarget } : {}),
+      ...(obsMode ? { obs: 1 } : {}),
+    });
+  }, [beatTarget, obsMode]);
 
   const onStart = () => {
     if (!gameRef.current) return;
@@ -747,7 +757,16 @@ export default function PushFlappyGame() {
   const startReady = camStatus === "ready" && modelReady && ui.status === "ready";
   const calibSet = calibPhase === "set";
   const canStart = startReady && hasPose && calibSet;
-  const showReadyChrome = ui.status === "ready" && countdown == null;
+  const showReadyChrome = ui.status === "ready" && countdown == null && !obsMode;
+
+  // OBS: after camera + plank lock, fire the existing 1-2-3 (no new start mechanic).
+  useEffect(() => {
+    if (!obsMode) return;
+    if (!canStart || countdown != null || ui.status !== "ready") return;
+    if (!trackerRef.current.isCalibrated) return;
+    clearCountdownTimer();
+    setCountdown(3);
+  }, [obsMode, canStart, countdown, ui.status]);
 
   const coachMessage = (() => {
     if (!startReady) return null;
@@ -761,7 +780,13 @@ export default function PushFlappyGame() {
         detail: holdProgress > 0 ? `Hold steady… ${Math.round(holdProgress * 100)}%` : "Stay still in plank — this locks bird “up” near the top.",
       };
     }
-    return { tone: "emerald" as const, title: "Start position set", detail: "Bird “up” is your plank. Go down to dive. Tap Start when ready." };
+    return {
+      tone: "emerald" as const,
+      title: "Start position set",
+      detail: obsMode
+        ? "Bird “up” is your plank. Countdown starts next — drop to dive."
+        : "Bird “up” is your plank. Go down to dive. Tap Start when ready.",
+    };
   })();
 
   if (boardDeepLink) {
@@ -769,12 +794,18 @@ export default function PushFlappyGame() {
   }
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden overscroll-none bg-[#0c0a09] text-white">
-      <header className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 pointer-events-none">
-        <Link href="/" className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">← Home</Link>
-        <div className="font-display rounded-full bg-stone-950/70 px-3 py-2 text-sm font-bold tracking-tight text-amber-100 backdrop-blur-md">Push Flappy</div>
-        <button type="button" onClick={onOpenBoard} className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">Board</button>
-      </header>
+    <div
+      className={`relative flex h-[100dvh] w-full flex-col overflow-hidden overscroll-none text-white ${
+        obsMode ? "bg-black p-3 sm:p-5" : "bg-[#0c0a09]"
+      }`}
+    >
+      {!obsMode && (
+        <header className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 pointer-events-none">
+          <Link href="/" className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">← Home</Link>
+          <div className="font-display rounded-full bg-stone-950/70 px-3 py-2 text-sm font-bold tracking-tight text-amber-100 backdrop-blur-md">Push Flappy</div>
+          <button type="button" onClick={onOpenBoard} className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">Board</button>
+        </header>
+      )}
       {showReadyChrome && (
         <div className="absolute inset-x-0 top-[max(3.4rem,calc(env(safe-area-inset-top)+2.85rem))] z-20 flex justify-center px-3 pointer-events-none">
           <SiblingPromoPill surface="play" className="pointer-events-auto" />
@@ -803,11 +834,11 @@ export default function PushFlappyGame() {
             </div>
           </div>
         )}
-        {showOrientationTip && ui.status === "ready" && camStatus === "ready" && (
+        {showOrientationTip && !obsMode && ui.status === "ready" && camStatus === "ready" && (
           <OrientationTip show shifted={showReadyChrome} />
         )}
         {ui.status === "ready" && <CoachBanner coachMessage={coachMessage} calibPhase={calibPhase} holdProgress={holdProgress} />}
-        {startReady && countdown == null && (
+        {startReady && countdown == null && !obsMode && (
           <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} onStart={onStart} />
         )}
         {countdown != null && countdown > 0 && <CountdownOverlay count={countdown} />}

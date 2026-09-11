@@ -67,6 +67,10 @@ const FAQS: { q: string; a: string }[] = [
     q: "Why won’t the camera start?",
     a: "Browsers require a secure context (HTTPS) and an explicit permission grant. Deny or block the permission, use HTTP on a random IP, or cover the lens and pose won’t lock. Reload, allow camera, and hold a stable plank for calibration.",
   },
+  {
+    q: "Can I put this in OBS?",
+    a: "Yes. Add https://pushflappy.com/stream (or /play?obs=1) as a Browser Source at 1920×1080. That view hides marketing chrome and enlarges the score / beat-me HUD. Allow the camera, hold a plank, and the usual 3-2-1 countdown starts. Viewers dare you by opening the beat-me link on their phone. Optional second source: /overlay for today’s board (no camera). See STREAMERS.md.",
+  },
 ];
 
 const faqJsonLd = {

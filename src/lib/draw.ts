@@ -291,32 +291,34 @@ export function drawHud(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   reps: number,
-  beatTarget?: number | null
+  beatTarget?: number | null,
+  opts?: { capture?: boolean }
 ) {
   const { width: w } = state;
+  const capture = opts?.capture === true;
   ctx.save();
   ctx.textAlign = "center";
-  ctx.font = `900 ${Math.max(28, w * 0.08)}px system-ui, sans-serif`;
+  ctx.font = `900 ${capture ? Math.max(64, w * 0.12) : Math.max(28, w * 0.08)}px system-ui, sans-serif`;
   ctx.fillStyle = "#fff8e7";
   ctx.strokeStyle = "rgba(40,18,8,0.7)";
-  ctx.lineWidth = 4;
+  ctx.lineWidth = capture ? 7 : 4;
   const scoreText = String(state.score);
-  const scoreY = Math.max(48, w * 0.08);
+  const scoreY = capture ? Math.max(76, w * 0.1) : Math.max(48, w * 0.08);
   ctx.strokeText(scoreText, w / 2, scoreY);
   ctx.fillText(scoreText, w / 2, scoreY);
 
-  ctx.font = `600 ${Math.max(12, w * 0.032)}px system-ui, sans-serif`;
-  ctx.lineWidth = 3;
+  ctx.font = `600 ${capture ? Math.max(18, w * 0.038) : Math.max(12, w * 0.032)}px system-ui, sans-serif`;
+  ctx.lineWidth = capture ? 5 : 3;
   const sub = `Best ${state.highScore} · Reps ${reps}`;
-  const subY = Math.max(72, w * 0.12);
+  const subY = capture ? scoreY + Math.max(36, w * 0.045) : Math.max(72, w * 0.12);
   ctx.strokeText(sub, w / 2, subY);
   ctx.fillText(sub, w / 2, subY);
 
   if (beatTarget != null && beatTarget >= 0) {
-    const barW = Math.min(w * 0.55, 220);
-    const barH = Math.max(8, w * 0.014);
+    const barW = capture ? Math.min(w * 0.72, 480) : Math.min(w * 0.55, 220);
+    const barH = capture ? Math.max(14, w * 0.022) : Math.max(8, w * 0.014);
     const barX = (w - barW) / 2;
-    const barY = subY + Math.max(10, w * 0.02);
+    const barY = subY + Math.max(capture ? 16 : 10, w * 0.02);
     const progress =
       beatTarget <= 0 ? 1 : Math.min(1, state.score / beatTarget);
     ctx.fillStyle = "rgba(40,18,8,0.5)";
@@ -325,19 +327,19 @@ export function drawHud(
       state.score > beatTarget ? "rgba(52,211,153,0.95)" : "rgba(251,191,36,0.9)";
     ctx.fillRect(barX, barY, barW * progress, barH);
     ctx.strokeStyle = "rgba(255,230,180,0.35)";
-    ctx.lineWidth = 1;
+    ctx.lineWidth = capture ? 2 : 1;
     ctx.strokeRect(barX, barY, barW, barH);
 
-    ctx.font = `700 ${Math.max(11, w * 0.028)}px system-ui, sans-serif`;
+    ctx.font = `800 ${capture ? Math.max(28, w * 0.05) : Math.max(11, w * 0.028)}px system-ui, sans-serif`;
     ctx.fillStyle =
       state.score > beatTarget ? "#6ee7b7" : "#fde68a";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = capture ? 5 : 3;
     const label =
       state.score > beatTarget
         ? `Beat ${beatTarget}!`
         : `Beat ${beatTarget}`;
-    ctx.strokeText(label, w / 2, barY + barH + Math.max(14, w * 0.032));
-    ctx.fillText(label, w / 2, barY + barH + Math.max(14, w * 0.032));
+    ctx.strokeText(label, w / 2, barY + barH + Math.max(capture ? 28 : 14, w * 0.032));
+    ctx.fillText(label, w / 2, barY + barH + Math.max(capture ? 28 : 14, w * 0.032));
   }
   ctx.restore();
 }
