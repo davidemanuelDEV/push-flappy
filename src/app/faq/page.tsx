@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 const SITE = "https://pushflappy.com";
+const ogImage = new URL("/api/og", SITE).toString();
 
 export const metadata: Metadata = {
   title: "FAQ — Push Flappy",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     siteName: "Push Flappy",
     images: [
       {
-        url: "/og.png",
+        url: ogImage,
         width: 1200,
         height: 630,
         alt: "Push Flappy FAQ",
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     title: "FAQ — Push Flappy",
     description:
       "How Push Flappy works: push-ups drive the bird, camera setup, beat-me links, daily board, and on-device privacy.",
-    images: ["/og.png"],
+    images: [ogImage],
   },
 };
 

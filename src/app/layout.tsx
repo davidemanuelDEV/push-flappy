@@ -25,6 +25,7 @@ const siteTitle = "Push Flappy: Push-up camera game — Flappy with your body";
 const siteDescription =
   "Push-up camera game — Flappy with your body. Webcam or phone + on-device MediaPipe Pose. No downloads, no accounts. Works on phone over HTTPS.";
 const siteUrl = "https://pushflappy.com";
+const ogImage = new URL("/api/og", siteUrl).toString();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -58,7 +59,7 @@ export const metadata: Metadata = {
     url: siteUrl,
     images: [
       {
-        url: "/og.png",
+        url: ogImage,
         width: 1200,
         height: 630,
         alt: "Push Flappy — Push-up camera game",
@@ -69,7 +70,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/og.png"],
+    images: [ogImage],
   },
   other: {
     "mobile-web-app-capable": "yes",
