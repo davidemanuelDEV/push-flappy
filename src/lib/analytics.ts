@@ -9,7 +9,8 @@ export type GrowthEvent =
   | "challenge_open"
   | "share_click"
   | "board_submit"
-  | "reminder_optin";
+  | "reminder_optin"
+  | "sibling_click";
 
 export type ShareChannel = "wa" | "x" | "copy" | "native" | "card" | "primary";
 

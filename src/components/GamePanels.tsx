@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import ReminderCapture from "@/components/ReminderCapture";
+import SiblingPromo from "@/components/SiblingPromo";
 import type { CalibPhase } from "@/lib/pose";
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
 
@@ -204,6 +205,7 @@ export function GameOverPanel({
   onOpenBoard: () => void;
 }) {
   const primaryLabel = beatVictory ? "Your move" : "Challenge a friend";
+  const siblingSurface = beatVictory ? "victory" : "wipeout";
 
   return (
     <div className="absolute inset-0 z-10 flex items-end justify-center bg-gradient-to-t from-black/75 via-black/45 to-black/25 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:bg-black/55 sm:p-4">
@@ -240,6 +242,7 @@ export function GameOverPanel({
         >
           {primaryLabel}
         </button>
+        <SiblingPromo surface={siblingSurface} className="mt-2" />
         <button
           type="button"
           onClick={onRestart}
@@ -307,6 +310,11 @@ export function GameOverPanel({
               ⋯
             </ShareActionButton>
           </div>
+          <SiblingPromo
+            surface={siblingSurface}
+            variant="inline"
+            className="mt-2"
+          />
         </div>
         <div className="mt-3">
           <ReminderCapture source="gameover" compact />
