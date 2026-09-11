@@ -48,13 +48,20 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Push Flappy",
     url: siteUrl,
-    images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "Push Flappy" }],
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Push Flappy — Flappy Bird for push day",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/icons/icon-512.png"],
+    images: ["/og.png"],
   },
   other: {
     "mobile-web-app-capable": "yes",
