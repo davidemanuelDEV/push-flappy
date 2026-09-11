@@ -28,6 +28,7 @@ npm run build && npm start
 - On wipeout, **Share challenge** builds a deep link: `https://pushflappy.com/play?beat={score}` (optional `&reps=`).
 - Share text includes score + wipeout quip + dare CTA. Prefer `navigator.share`; clipboard fallback.
 - Opening `/play?beat=N` shows a **bar-to-beat** in the HUD. Clearing a higher score triggers a **you beat them** share prompt.
+- Wipeout / victory share UI includes a light secondary **Squat Flappy** text link (Growth lock: “Arms cooked? Legs next → squatflappy.com”) → `https://squatflappy.com/play`.
 - Optional canvas share card (1080×1080) attaches when the OS share sheet supports files.
 
 ### Daily seeded runs
@@ -87,7 +88,7 @@ Without KV, the API still works with an **in-memory** store (lost on cold starts
 
 ### Growth analytics
 - `@vercel/analytics` + `@vercel/speed-insights` in the root layout (free tier).
-- Client events: `play_start`, `play_wipeout`, `challenge_open` (beat), `share_click` (channel wa|x|copy|native|card), `board_submit`, `reminder_optin`.
+- Client events: `play_start`, `play_wipeout`, `challenge_open` (beat), `share_click` (channel wa|x|copy|native|card), `board_submit`, `reminder_optin`, `sibling_click` (`from: push`, `surface: wipeout|victory`).
 - Optional `GET /api/stats` — `{ dayKey, boardEntriesToday, reminderCount, storage, demoAllowed }` (no PII).
 
 ## Phone / HTTPS
