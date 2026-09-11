@@ -1,8 +1,8 @@
 /**
  * Daily leaderboard persistence.
- * Prefer Vercel KV / Upstash REST when env is set (`KV_REST_API_*` or
- * `UPSTASH_REDIS_REST_*`); otherwise in-memory
- * (best-effort on Hobby — lost on cold starts / multi-instance).
+ * Prefer private Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set; else
+ * KV / Upstash REST (`KV_REST_API_*` or `UPSTASH_REDIS_REST_*`);
+ * otherwise in-memory (lost on cold starts / multi-instance).
  * Demo seed rows are gated: never in production unless ALLOW_DEMO_LEADERBOARD=1.
  */
 
@@ -22,16 +22,19 @@ export type LeaderboardEntry = {
   demo?: boolean;
 };
 
+export type LeaderboardStorage = "blob" | "kv" | "memory";
+
 export type LeaderboardPayload = {
   dayKey: string;
   entries: LeaderboardEntry[];
-  storage: "kv" | "memory";
+  storage: LeaderboardStorage;
   /** True when response includes (or would seed) demo flavor rows. */
   demo: boolean;
 };
 
 const MAX_ENTRIES = 50;
 const KEY_PREFIX = "push-flappy:lb:";
+const BLOB_PREFIX = "push-flappy/lb/";
 
 type GlobalMem = {
   __pushFlappyLb?: Map<string, LeaderboardEntry[]>;
@@ -75,6 +78,22 @@ export function kvRestConfig(): { url: string; token: string } | null {
 
 export function kvConfigured(): boolean {
   return kvRestConfig() != null;
+}
+
+/** Private Blob store — token is read by the SDK; never log it. */
+export function blobConfigured(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+/** Durable backend in use, or memory if none of the persist env pairs/tokens are set. */
+export function persistKind(): LeaderboardStorage {
+  if (blobConfigured()) return "blob";
+  if (kvConfigured()) return "kv";
+  return "memory";
+}
+
+function blobPathname(dayKey: string): string {
+  return `${BLOB_PREFIX}${dayKey}.json`;
 }
 
 /** Demo seeds only outside production, or when explicitly allowed. */
@@ -175,22 +194,53 @@ export function mergeWithSeeds(
   return sortEntries([...byNick.values()]).slice(0, MAX_ENTRIES);
 }
 
+async function parseEntries(raw: string): Promise<LeaderboardEntry[]> {
+  try {
+    return (JSON.parse(raw) as LeaderboardEntry[]).map(normalizeEntry);
+  } catch {
+    return [];
+  }
+}
+
+async function readBlob(dayKey: string): Promise<LeaderboardEntry[]> {
+  const { get } = await import("@vercel/blob");
+  try {
+    const result = await get(blobPathname(dayKey), { access: "private" });
+    if (!result || result.statusCode !== 200 || !result.stream) return [];
+    const text = await new Response(result.stream).text();
+    return parseEntries(text);
+  } catch (e) {
+    console.error("Blob board read failed", e instanceof Error ? e.name : "");
+    return [];
+  }
+}
+
+async function writeBlob(
+  dayKey: string,
+  entries: LeaderboardEntry[]
+): Promise<void> {
+  const { put } = await import("@vercel/blob");
+  await put(blobPathname(dayKey), JSON.stringify(entries), {
+    access: "private",
+    allowOverwrite: true,
+    addRandomSuffix: false,
+    contentType: "application/json",
+  });
+}
+
 async function readRaw(dayKey: string): Promise<{
   entries: LeaderboardEntry[];
-  storage: "kv" | "memory";
+  storage: LeaderboardStorage;
 }> {
   const key = KEY_PREFIX + dayKey;
-  if (kvConfigured()) {
+  const storage = persistKind();
+  if (storage === "blob") {
+    return { entries: await readBlob(dayKey), storage };
+  }
+  if (storage === "kv") {
     const raw = await kvCommand<string | null>("GET", key);
-    let entries: LeaderboardEntry[] = [];
-    if (raw) {
-      try {
-        entries = (JSON.parse(raw) as LeaderboardEntry[]).map(normalizeEntry);
-      } catch {
-        entries = [];
-      }
-    }
-    return { entries, storage: "kv" };
+    const entries = raw ? await parseEntries(raw) : [];
+    return { entries, storage };
   }
   const entries = (memStore().get(key) ?? []).map(normalizeEntry);
   return { entries, storage: "memory" };
@@ -199,10 +249,14 @@ async function readRaw(dayKey: string): Promise<{
 async function writeRaw(
   dayKey: string,
   entries: LeaderboardEntry[],
-  storage: "kv" | "memory"
+  storage: LeaderboardStorage
 ): Promise<void> {
   const key = KEY_PREFIX + dayKey;
   const payload = sortEntries(entries).slice(0, MAX_ENTRIES);
+  if (storage === "blob" && blobConfigured()) {
+    await writeBlob(dayKey, payload);
+    return;
+  }
   if (storage === "kv" && kvConfigured()) {
     await kvCommand("SET", key, JSON.stringify(payload));
     await kvCommand("EXPIRE", key, 60 * 60 * 72);
@@ -214,7 +268,7 @@ async function writeRaw(
 /** Persist demo seeds once per day when store is empty (dev / ALLOW_DEMO only). */
 async function ensureSeeded(
   dayKey: string,
-  storage: "kv" | "memory",
+  storage: LeaderboardStorage,
   entries: LeaderboardEntry[]
 ): Promise<LeaderboardEntry[]> {
   if (!demoLeaderboardAllowed()) {
@@ -295,7 +349,7 @@ export async function submitScore(
 /** Count real (non-demo) board entries for a day — for /api/stats. */
 export async function countRealEntries(
   dayKey: string = laDayKey()
-): Promise<{ count: number; storage: "kv" | "memory" }> {
+): Promise<{ count: number; storage: LeaderboardStorage }> {
   const { entries, storage } = await readRaw(dayKey);
   const count = entries.filter((e) => !e.demo).length;
   return { count, storage };

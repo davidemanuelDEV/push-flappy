@@ -6,7 +6,10 @@ import Link from "next/link";
 import ReminderCapture from "@/components/ReminderCapture";
 import SiblingPromo from "@/components/SiblingPromo";
 import type { CalibPhase } from "@/lib/pose";
-import type { LeaderboardEntry } from "@/lib/leaderboard-store";
+import type {
+  LeaderboardEntry,
+  LeaderboardStorage,
+} from "@/lib/leaderboard-store";
 
 type CoachMessage = {
   tone: "amber" | "emerald";
@@ -371,7 +374,7 @@ export function LeaderboardPanel({
   open: boolean;
   dayKey: string;
   entries: LeaderboardEntry[];
-  storage: "kv" | "memory" | null;
+  storage: LeaderboardStorage | null;
   loading: boolean;
   error: string | null;
   nick: string;
@@ -411,7 +414,7 @@ export function LeaderboardPanel({
           <p className="text-sm font-bold">Daily board</p>
           <p className="text-[11px] text-zinc-400">
             {dayKey} · PT seed ·{" "}
-            {storage === "kv"
+            {storage && storage !== "memory"
               ? "live"
               : storage === "memory"
                 ? "memory (not durable)"

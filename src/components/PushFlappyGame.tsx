@@ -46,7 +46,10 @@ import {
   xIntentUrl,
   copyToClipboard,
 } from "@/lib/share";
-import type { LeaderboardEntry } from "@/lib/leaderboard-store";
+import type {
+  LeaderboardEntry,
+  LeaderboardStorage,
+} from "@/lib/leaderboard-store";
 import {
   CoachBanner,
   CountdownOverlay,
@@ -119,7 +122,7 @@ export default function PushFlappyGame() {
   const [boardLoading, setBoardLoading] = useState(false);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [boardEntries, setBoardEntries] = useState<LeaderboardEntry[]>([]);
-  const [boardStorage, setBoardStorage] = useState<"kv" | "memory" | null>(null);
+  const [boardStorage, setBoardStorage] = useState<LeaderboardStorage | null>(null);
   const [boardDay, setBoardDay] = useState(laDayKey());
   const [nick, setNick] = useState("Anon");
   const [emoji, setEmoji] = useState("🐦");
@@ -666,7 +669,7 @@ export default function PushFlappyGame() {
       setBoardDay(day);
       const res = await fetch(`/api/leaderboard?day=${encodeURIComponent(day)}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Board error ${res.status}`);
-      const data = (await res.json()) as { dayKey: string; entries: LeaderboardEntry[]; storage: "kv" | "memory"; demo?: boolean };
+      const data = (await res.json()) as { dayKey: string; entries: LeaderboardEntry[]; storage: LeaderboardStorage; demo?: boolean };
       setBoardEntries(data.entries ?? []);
       setBoardStorage(data.storage);
       setBoardDay(data.dayKey);
@@ -722,7 +725,7 @@ export default function PushFlappyGame() {
       setScorePosted(true);
       setSubmitMsg(
         data.storage === "memory"
-          ? "Posted (memory — set KV_REST_API_* or UPSTASH_REDIS_REST_* for persistence)"
+          ? "Posted (memory — set BLOB_READ_WRITE_TOKEN or KV/Upstash REST for persistence)"
           : "Posted to today’s board!"
       );
     } catch (e) {

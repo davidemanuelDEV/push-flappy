@@ -69,22 +69,21 @@ npm run build && npm start
 
 Production paths avoid logging full emails (masked if logged in dev).
 
-#### Persistence (Vercel KV / Upstash)
+#### Persistence (Vercel Blob / KV / Upstash)
 
-When these env vars are set on the Vercel project, scores persist via Redis REST:
+Daily scores persist when any of these are set on the Vercel project:
 
 | Env var | Purpose |
 |---------|---------|
+| `BLOB_READ_WRITE_TOKEN` | Private Vercel Blob store (pathname `push-flappy/lb/{day}.json`) |
 | `KV_REST_API_URL` | Upstash / Vercel KV REST URL |
 | `KV_REST_API_TOKEN` | REST token |
 | `UPSTASH_REDIS_REST_URL` | Alias for `KV_REST_API_URL` (same REST protocol) |
 | `UPSTASH_REDIS_REST_TOKEN` | Alias for `KV_REST_API_TOKEN` |
 
-Either complete pair works (`KV_*` preferred when both are set). No paid SDK.
+Blob wins when `BLOB_READ_WRITE_TOKEN` is set; else a complete `KV_*` or `UPSTASH_REDIS_REST_*` pair. Memory only if none of those are set. Responses include `storage: "blob" | "kv" | "memory"` — wipeout treats any non-memory value as posted.
 
-In the Vercel dashboard: **Storage → Create Database → KV (Upstash)** → connect to the `push-flappy` project (auto-injects the vars), then redeploy. A raw Upstash Redis database can instead set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
-
-Without KV, the API still works with an **in-memory** store (lost on cold starts / multi-instance). Responses include `storage: "kv" | "memory"` and `demo: boolean` so Growth can tell honesty from flavor.
+In the Vercel dashboard: connect a **private Blob** store (or **Storage → KV / Upstash**), then redeploy. Never commit `.env.local`.
 
 **Demo seeds:** fake board rows are **off in production** unless `ALLOW_DEMO_LEADERBOARD=1`. In development they still fill an empty board. An empty production board shows clear empty-state copy (not a fake-full list).
 
@@ -92,7 +91,7 @@ Without KV, the API still works with an **in-memory** store (lost on cold starts
 |---------|---------|
 | `ALLOW_DEMO_LEADERBOARD` | Set to `1` to force demo seeds even in production (local/staging only) |
 
-**David / deploy:** set `KV_REST_API_URL` + `KV_REST_API_TOKEN` (or the `UPSTASH_REDIS_REST_*` aliases) on the Vercel project for durable board + reminders, then redeploy.
+**David / deploy:** Blob token on the project persists the daily board. Reminders still use the KV / Upstash REST pair.
 
 ### Growth analytics
 - `@vercel/analytics` + `@vercel/speed-insights` in the root layout (free tier).
@@ -124,7 +123,7 @@ Phone browsers require **HTTPS** (or localhost) for `getUserMedia`. Deploy to Ve
 
 - Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4
 - `@mediapipe/tasks-vision` (client-only)
-- Optional Vercel KV / Upstash for the daily board + reminder emails
+- Optional Vercel Blob (daily board) + KV / Upstash (board fallback + reminder emails)
 - Optional Resend (`RESEND_API_KEY`) for welcome mail; otherwise capture-only
 - No accounts, no company branding
 
