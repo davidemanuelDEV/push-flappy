@@ -14,10 +14,21 @@ type CoachMessage = {
   detail: string;
 } | null;
 
-export function OrientationTip({ show }: { show: boolean }) {
+export function OrientationTip({
+  show,
+  shifted = false,
+}: {
+  show: boolean;
+  /** True when the ready/idle sibling pill sits under the play header. */
+  shifted?: boolean;
+}) {
   if (!show) return null;
   return (
-    <div className="absolute inset-x-0 top-[4.25rem] z-10 flex justify-center px-3 pointer-events-none sm:top-16">
+    <div
+      className={`absolute inset-x-0 z-10 flex justify-center px-3 pointer-events-none ${
+        shifted ? "top-[6.75rem] sm:top-[6.5rem]" : "top-[4.25rem] sm:top-16"
+      }`}
+    >
       <p className="rounded-2xl bg-black/65 px-3 py-2 text-center text-[11px] leading-snug text-zinc-200 backdrop-blur-md max-w-[18rem] sm:max-w-sm sm:text-xs">
         Tip: phone on the floor, camera facing up. Portrait is fine —
         landscape optional.

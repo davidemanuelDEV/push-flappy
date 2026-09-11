@@ -56,6 +56,7 @@ import {
   ReadyPanel,
 } from "@/components/GamePanels";
 import PlaySplash from "@/components/PlaySplash";
+import SiblingPromoPill from "@/components/SiblingPromoPill";
 
 type CamStatus = "idle" | "requesting" | "ready" | "error" | "denied";
 
@@ -706,6 +707,7 @@ export default function PushFlappyGame() {
   const startReady = camStatus === "ready" && modelReady && ui.status === "ready";
   const calibSet = calibPhase === "set";
   const canStart = startReady && hasPose && calibSet;
+  const showReadyChrome = ui.status === "ready" && countdown == null;
 
   const coachMessage = (() => {
     if (!startReady) return null;
@@ -733,6 +735,11 @@ export default function PushFlappyGame() {
         <div className="font-display rounded-full bg-stone-950/70 px-3 py-2 text-sm font-bold tracking-tight text-amber-100 backdrop-blur-md">Push Flappy</div>
         <button type="button" onClick={onOpenBoard} className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">Board</button>
       </header>
+      {showReadyChrome && (
+        <div className="absolute inset-x-0 top-[max(3.4rem,calc(env(safe-area-inset-top)+2.85rem))] z-20 flex justify-center px-3 pointer-events-none">
+          <SiblingPromoPill surface="play" className="pointer-events-auto" />
+        </div>
+      )}
       <div ref={containerRef} className="relative min-h-0 flex-1 touch-none">
         <video ref={videoRef} playsInline muted autoPlay className="pointer-events-none absolute h-px w-px opacity-0" />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none" />
@@ -756,7 +763,9 @@ export default function PushFlappyGame() {
             </div>
           </div>
         )}
-        {showOrientationTip && ui.status === "ready" && camStatus === "ready" && <OrientationTip show />}
+        {showOrientationTip && ui.status === "ready" && camStatus === "ready" && (
+          <OrientationTip show shifted={showReadyChrome} />
+        )}
         {ui.status === "ready" && <CoachBanner coachMessage={coachMessage} calibPhase={calibPhase} holdProgress={holdProgress} />}
         {startReady && countdown == null && (
           <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} onStart={onStart} />
