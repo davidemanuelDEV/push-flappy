@@ -154,6 +154,22 @@ function ShareActionButton({
   );
 }
 
+export function CountdownOverlay({ count }: { count: number }) {
+  return (
+    <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+      <div className="flex h-36 w-36 items-center justify-center rounded-full bg-stone-950/80 shadow-2xl backdrop-blur-md ring-2 ring-amber-400/40 sm:h-44 sm:w-44">
+        <span
+          key={count}
+          className="font-black tabular-nums text-amber-200 animate-pulse"
+          style={{ fontSize: "5.5rem", lineHeight: 1 }}
+        >
+          {count}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function GameOverPanel({
   score,
   highScore,

@@ -49,6 +49,7 @@ import {
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
 import {
   CoachBanner,
+  CountdownOverlay,
   GameOverPanel,
   LeaderboardPanel,
   OrientationTip,
@@ -107,6 +108,8 @@ export default function PushFlappyGame() {
   const [wipeoutLine, setWipeoutLine] = useState<string | null>(null);
   const [beatVictory, setBeatVictory] = useState(false);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const crashRef = useRef<CrashBurst | null>(null);
   const pendingWipeoutRef = useRef<string | null>(null);
   const lastWipeoutRef = useRef<string | null>(null);
@@ -448,7 +451,14 @@ export default function PushFlappyGame() {
     lastPoseSampleRef.current = { ...lastPoseSampleRef.current, calibPhase: "waiting", holdProgress: 0, reps: 0 };
   };
 
-  const onStart = () => {
+  const clearCountdownTimer = () => {
+    if (countdownTimerRef.current != null) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+  };
+
+  const beginPlay = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
     if (!trackerRef.current.isCalibrated) return;
@@ -458,15 +468,53 @@ export default function PushFlappyGame() {
     setShareStatus(null);
     victoryFiredRef.current = false;
     setBeatVictory(false);
+    setCountdown(null);
     const day = laDayKey();
-    gameRef.current = startGame({ ...createInitialState(g.width, g.height, loadHighScore(), day), birdY: g.birdY });
-    setUi((u) => ({ ...u, status: "playing", score: 0, reps: 0, highScore: loadHighScore() }));
+    gameRef.current = startGame({
+      ...createInitialState(g.width, g.height, loadHighScore(), day),
+      birdY: g.birdY,
+    });
+    setUi((u) => ({
+      ...u,
+      status: "playing",
+      score: 0,
+      reps: 0,
+      highScore: loadHighScore(),
+    }));
     track("play_start", beatTarget != null ? { beat: beatTarget } : undefined);
+  }, [beatTarget]);
+
+  const onStart = () => {
+    if (!gameRef.current) return;
+    if (!trackerRef.current.isCalibrated) return;
+    if (countdown != null) return;
+    clearCountdownTimer();
+    setCountdown(3);
   };
+
+  useEffect(() => {
+    if (countdown == null) return;
+    if (countdown <= 0) {
+      clearCountdownTimer();
+      beginPlay();
+      return;
+    }
+    clearCountdownTimer();
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c == null) return null;
+        if (c <= 1) return 0;
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearCountdownTimer();
+  }, [countdown, beginPlay]);
 
   const onRestart = () => {
     const g = gameRef.current;
     if (!g) return;
+    clearCountdownTimer();
+    setCountdown(null);
     crashRef.current = null;
     pendingWipeoutRef.current = null;
     beginCalibration();
@@ -674,7 +722,10 @@ export default function PushFlappyGame() {
         )}
         {showOrientationTip && ui.status === "ready" && camStatus === "ready" && <OrientationTip show />}
         {ui.status === "ready" && <CoachBanner coachMessage={coachMessage} calibPhase={calibPhase} holdProgress={holdProgress} />}
-        {startReady && <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} onStart={onStart} />}
+        {startReady && countdown == null && (
+          <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} onStart={onStart} />
+        )}
+        {countdown != null && countdown > 0 && <CountdownOverlay count={countdown} />}
         {ui.status === "over" && (
           <GameOverPanel
             score={ui.score}
