@@ -11,7 +11,7 @@ export type GrowthEvent =
   | "board_submit"
   | "reminder_optin";
 
-export type ShareChannel = "wa" | "x" | "copy" | "native" | "card";
+export type ShareChannel = "wa" | "x" | "copy" | "native" | "card" | "primary";
 
 /**
  * Thin wrapper around @vercel/analytics track().

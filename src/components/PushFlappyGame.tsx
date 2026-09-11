@@ -557,6 +557,42 @@ export default function PushFlappyGame() {
     flashShareStatus(result);
   };
 
+  const onSharePrimary = async () => {
+    const payload = currentSharePayload();
+    track("share_click", { channel: "primary" });
+    const canNative =
+      typeof navigator !== "undefined" && typeof navigator.share === "function";
+    if (canNative) {
+      let file: File | null = null;
+      try {
+        file = await shareCardFile(currentShareCard());
+      } catch {
+        file = null;
+      }
+      const result = await shareOrCopy({
+        text: payload.text,
+        url: payload.url,
+        file,
+      });
+      flashShareStatus(result);
+      return;
+    }
+    const mobileish =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(max-width: 640px)").matches ||
+        /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+    if (mobileish) {
+      openShareWindow(whatsappShareUrl(payload.text));
+      flashShareStatus("opened");
+      return;
+    }
+    const result = await shareOrCopy({
+      text: payload.text,
+      url: payload.url,
+    });
+    flashShareStatus(result);
+  };
+
   const loadBoard = useCallback(async () => {
     setBoardLoading(true);
     setBoardError(null);
@@ -685,6 +721,7 @@ export default function PushFlappyGame() {
             beatVictory={beatVictory}
             shareStatus={shareStatus}
             onRestart={onRestart}
+            onSharePrimary={onSharePrimary}
             onShareWhatsApp={onShareWhatsApp}
             onShareX={onShareX}
             onCopyLink={onCopyLink}
