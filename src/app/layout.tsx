@@ -19,9 +19,9 @@ const display = Fredoka({
   weight: ["500", "600", "700"],
 });
 
-const siteTitle = "Push Flappy — Flappy Bird for push day";
+const siteTitle = "Push Flappy: Push-up camera game — Flappy with your body";
 const siteDescription =
-  "Control Flappy Bird with push-ups. Webcam or phone camera + MediaPipe Pose. No downloads, no accounts. Works on phone over HTTPS.";
+  "Push-up camera game — Flappy with your body. Webcam or phone + on-device MediaPipe Pose. No downloads, no accounts. Works on phone over HTTPS.";
 const siteUrl = "https://pushflappy.com";
 
 export const metadata: Metadata = {
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
         url: "/og.png",
         width: 1200,
         height: 630,
-        alt: "Push Flappy — Flappy Bird for push day",
+        alt: "Push Flappy — Push-up camera game",
       },
     ],
   },
