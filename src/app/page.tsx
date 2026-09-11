@@ -64,7 +64,7 @@ export default function HomePage() {
           </Link>
           <div className="grid grid-cols-2 gap-2.5">
             <Link
-              href="/play?board=1"
+              href="/board"
               className="flex min-h-12 items-center justify-center rounded-2xl border border-zinc-700/80 bg-zinc-900/60 px-3 py-3 text-sm font-semibold text-zinc-100 transition hover:border-amber-700/50 hover:bg-zinc-900"
             >
               Daily board

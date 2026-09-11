@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { detectCountryFromHeaders } from "@/lib/country";
 import { laDayKey } from "@/lib/daily";
 import {
   allowRequest,
@@ -86,6 +87,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const board = await submitScore({ nick, emoji, score, reps, dayKey });
+  // Never trust client-supplied country for ranking provenance
+  const country = detectCountryFromHeaders(req.headers);
+
+  const board = await submitScore({
+    nick,
+    emoji,
+    score,
+    reps,
+    dayKey,
+    country,
+  });
   return NextResponse.json(board);
 }

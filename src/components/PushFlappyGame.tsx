@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FilesetResolver,
@@ -60,8 +60,11 @@ const EMOJI_KEY = "push-flappy-emoji";
 
 export default function PushFlappyGame() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const beatChallenge = parseBeatFromSearch(searchParams);
   const beatTarget = beatChallenge?.score ?? null;
+  // Deep-link ?board=1 goes to dedicated camera-free /board
+  const boardDeepLink = searchParams.get("board") === "1";
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -171,7 +174,26 @@ export default function PushFlappyGame() {
     };
   }, []);
 
+  const stopCameraStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    const video = videoRef.current;
+    if (video) video.srcObject = null;
+  }, []);
+
+  // Redirect legacy ?board=1 deep-link to camera-free /board (no getUserMedia / MediaPipe)
   useEffect(() => {
+    if (!boardDeepLink) return;
+    router.replace("/board");
+  }, [boardDeepLink, router]);
+
+  // Camera: only while board is closed and not on board deep-link redirect
+  useEffect(() => {
+    if (boardDeepLink || boardOpen) {
+      stopCameraStream();
+      if (boardOpen || boardDeepLink) setCamStatus("idle");
+      return;
+    }
     let cancelled = false;
     async function initCam() {
       setCamStatus("requesting");
@@ -202,17 +224,22 @@ export default function PushFlappyGame() {
         }
       }
     }
-    initCam();
+    void initCam();
     return () => {
       cancelled = true;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+      stopCameraStream();
     };
-  }, []);
+  }, [boardOpen, boardDeepLink, stopCameraStream]);
 
+  // Pose / MediaPipe: defer until board closed (and not redirecting to /board)
   useEffect(() => {
+    if (boardDeepLink || boardOpen) return;
     let cancelled = false;
     async function initPose() {
+      if (landmarkerRef.current) {
+        setModelReady(true);
+        return;
+      }
       try {
         const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM);
         if (cancelled) return;
@@ -249,13 +276,20 @@ export default function PushFlappyGame() {
         }
       }
     }
-    initPose();
+    void initPose();
     return () => {
       cancelled = true;
+    };
+  }, [boardOpen, boardDeepLink]);
+
+  // Unmount: always tear down camera + pose
+  useEffect(() => {
+    return () => {
+      stopCameraStream();
       landmarkerRef.current?.close();
       landmarkerRef.current = null;
     };
-  }, []);
+  }, [stopCameraStream]);
 
   useEffect(() => {
     resizeCanvas();
@@ -489,18 +523,15 @@ export default function PushFlappyGame() {
   }, []);
 
   const onOpenBoard = () => {
+    // Stops getUserMedia via boardOpen effect; pose init stays gated while open
+    stopCameraStream();
+    setCamStatus("idle");
     setBoardOpen(true);
     setSubmitMsg(null);
     void loadBoard();
   };
 
-  // Landing “Daily board” deep-link (?board=1)
-  useEffect(() => {
-    if (searchParams.get("board") !== "1") return;
-    setBoardOpen(true);
-    setSubmitMsg(null);
-    void loadBoard();
-  }, [searchParams, loadBoard]);
+  // Legacy ?board=1 is redirected to /board above — do not open overlay or touch camera.
 
   const onSubmitScore = async () => {
     setSubmitting(true);
@@ -547,6 +578,10 @@ export default function PushFlappyGame() {
     }
     return { tone: "emerald" as const, title: "Start position set", detail: "Bird “up” is your plank. Go down to dive. Tap Start when ready." };
   })();
+
+  if (boardDeepLink) {
+    return <PlaySplash label="Opening daily board…" />;
+  }
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden overscroll-none bg-zinc-950 text-white">
@@ -611,7 +646,7 @@ export default function PushFlappyGame() {
           submitMsg={submitMsg}
           onNick={setNick}
           onEmoji={setEmoji}
-          onClose={() => setBoardOpen(false)}
+          onClose={() => { setBoardOpen(false); }}
           onRefresh={() => void loadBoard()}
           onSubmit={() => void onSubmitScore()}
         />

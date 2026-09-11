@@ -2,9 +2,11 @@
  * Daily leaderboard persistence.
  * Prefer Vercel KV / Upstash REST when env is set; otherwise in-memory
  * (best-effort on Hobby — lost on cold starts / multi-instance).
+ * Always surfaces demo seed rows when a day is empty so the board feels alive.
  */
 
 import { laDayKey } from "./daily";
+import { normalizeCountry } from "./country";
 
 export type LeaderboardEntry = {
   nick: string;
@@ -13,6 +15,10 @@ export type LeaderboardEntry = {
   reps: number;
   dayKey: string;
   at: number;
+  /** ISO 3166-1 alpha-2 */
+  country: string;
+  /** True for built-in demo flavor rows (not real players). */
+  demo?: boolean;
 };
 
 export type LeaderboardPayload = {
@@ -27,12 +33,19 @@ const KEY_PREFIX = "push-flappy:lb:";
 type GlobalMem = {
   __pushFlappyLb?: Map<string, LeaderboardEntry[]>;
   __pushFlappyRl?: Map<string, number[]>;
+  __pushFlappySeeded?: Set<string>;
 };
 
 function memStore(): Map<string, LeaderboardEntry[]> {
   const g = globalThis as unknown as GlobalMem;
   if (!g.__pushFlappyLb) g.__pushFlappyLb = new Map();
   return g.__pushFlappyLb;
+}
+
+function seededDays(): Set<string> {
+  const g = globalThis as unknown as GlobalMem;
+  if (!g.__pushFlappySeeded) g.__pushFlappySeeded = new Set();
+  return g.__pushFlappySeeded;
 }
 
 export function rateLimitStore(): Map<string, number[]> {
@@ -78,41 +91,140 @@ function sortEntries(entries: LeaderboardEntry[]): LeaderboardEntry[] {
   });
 }
 
-export async function getDailyBoard(
-  dayKey: string = laDayKey()
-): Promise<LeaderboardPayload> {
+function normalizeEntry(e: LeaderboardEntry): LeaderboardEntry {
+  return {
+    ...e,
+    country: normalizeCountry(e.country),
+    demo: Boolean(e.demo),
+  };
+}
+
+/** Fun gym-bro / push-day demo nicks — clearly flavor, varied countries. */
+const SEED_TEMPLATE: Omit<LeaderboardEntry, "dayKey" | "at">[] = [
+  { nick: "PlankDaddy", emoji: "💪", score: 42, reps: 38, country: "US", demo: true },
+  { nick: "PipeDodger", emoji: "🐦", score: 37, reps: 31, country: "GB", demo: true },
+  { nick: "CopperKing", emoji: "🏋️", score: 33, reps: 29, country: "BR", demo: true },
+  { nick: "RepGoblin", emoji: "😈", score: 28, reps: 40, country: "JP", demo: true },
+  { nick: "FormCheck", emoji: "🫡", score: 24, reps: 22, country: "CA", demo: true },
+  { nick: "FloorCam", emoji: "📱", score: 19, reps: 18, country: "AU", demo: true },
+  { nick: "GapRunner", emoji: "🔥", score: 15, reps: 14, country: "DE", demo: true },
+  { nick: "PushDayPete", emoji: "🫡", score: 12, reps: 16, country: "MX", demo: true },
+  { nick: "NoseToFloor", emoji: "😤", score: 9, reps: 11, country: "KR", demo: true },
+  { nick: "BirdBrain", emoji: "🧠", score: 6, reps: 8, country: "FR", demo: true },
+  { nick: "DemoDipper", emoji: "✨", score: 4, reps: 5, country: "IN", demo: true },
+];
+
+export function demoEntriesForDay(dayKey: string): LeaderboardEntry[] {
+  // Stable-ish timestamps within the LA day so sort is deterministic
+  const base = Date.parse(`${dayKey}T16:00:00-07:00`);
+  const t0 = Number.isFinite(base) ? base : Date.now() - 3_600_000;
+  return SEED_TEMPLATE.map((s, i) =>
+    normalizeEntry({
+      ...s,
+      dayKey,
+      at: t0 + i * 97_000,
+    })
+  );
+}
+
+
+/**
+ * Merge stored rows with demo seeds: real players win nick collisions;
+ * seeds fill gaps so the board never looks empty.
+ */
+export function mergeWithSeeds(
+  dayKey: string,
+  stored: LeaderboardEntry[]
+): LeaderboardEntry[] {
+  const normalized = stored.map(normalizeEntry);
+  const seeds = demoEntriesForDay(dayKey);
+  if (normalized.length === 0) return seeds;
+
+  const byNick = new Map<string, LeaderboardEntry>();
+  for (const s of seeds) byNick.set(s.nick.toLowerCase(), s);
+  for (const e of normalized) {
+    // Real (or persisted) entries override seed same-nick
+    byNick.set(e.nick.toLowerCase(), e);
+  }
+  return sortEntries([...byNick.values()]).slice(0, MAX_ENTRIES);
+}
+
+async function readRaw(dayKey: string): Promise<{
+  entries: LeaderboardEntry[];
+  storage: "kv" | "memory";
+}> {
   const key = KEY_PREFIX + dayKey;
   if (kvConfigured()) {
     const raw = await kvCommand<string | null>("GET", key);
     let entries: LeaderboardEntry[] = [];
     if (raw) {
       try {
-        entries = JSON.parse(raw) as LeaderboardEntry[];
+        entries = (JSON.parse(raw) as LeaderboardEntry[]).map(normalizeEntry);
       } catch {
         entries = [];
       }
     }
-    return {
-      dayKey,
-      entries: sortEntries(entries).slice(0, MAX_ENTRIES),
-      storage: "kv",
-    };
+    return { entries, storage: "kv" };
   }
-  const entries = memStore().get(key) ?? [];
+  const entries = (memStore().get(key) ?? []).map(normalizeEntry);
+  return { entries, storage: "memory" };
+}
+
+async function writeRaw(
+  dayKey: string,
+  entries: LeaderboardEntry[],
+  storage: "kv" | "memory"
+): Promise<void> {
+  const key = KEY_PREFIX + dayKey;
+  const payload = sortEntries(entries).slice(0, MAX_ENTRIES);
+  if (storage === "kv" && kvConfigured()) {
+    await kvCommand("SET", key, JSON.stringify(payload));
+    await kvCommand("EXPIRE", key, 60 * 60 * 72);
+    return;
+  }
+  memStore().set(key, payload);
+}
+
+/** Persist demo seeds once per day when store is empty (KV or memory cold start). */
+async function ensureSeeded(
+  dayKey: string,
+  storage: "kv" | "memory",
+  entries: LeaderboardEntry[]
+): Promise<LeaderboardEntry[]> {
+  if (entries.length > 0) return entries;
+  const mark = `${storage}:${dayKey}`;
+  const seeds = demoEntriesForDay(dayKey);
+  if (!seededDays().has(mark)) {
+    seededDays().add(mark);
+    try {
+      await writeRaw(dayKey, seeds, storage);
+    } catch (e) {
+      console.error("Failed to persist demo seeds", e);
+    }
+  }
+  return seeds;
+}
+
+export async function getDailyBoard(
+  dayKey: string = laDayKey()
+): Promise<LeaderboardPayload> {
+  const { entries: stored, storage } = await readRaw(dayKey);
+  const ensured = await ensureSeeded(dayKey, storage, stored);
+  const entries = mergeWithSeeds(dayKey, ensured);
   return {
     dayKey,
     entries: sortEntries(entries).slice(0, MAX_ENTRIES),
-    storage: "memory",
+    storage,
   };
 }
 
 export async function submitScore(
-  entry: Omit<LeaderboardEntry, "at" | "dayKey"> & {
+  entry: Omit<LeaderboardEntry, "at" | "dayKey" | "demo"> & {
     dayKey?: string;
+    country?: string;
   }
 ): Promise<LeaderboardPayload> {
   const dayKey = entry.dayKey ?? laDayKey();
-  const key = KEY_PREFIX + dayKey;
   const full: LeaderboardEntry = {
     nick: entry.nick,
     emoji: entry.emoji,
@@ -120,37 +232,25 @@ export async function submitScore(
     reps: entry.reps,
     dayKey,
     at: Date.now(),
+    country: normalizeCountry(entry.country),
+    demo: false,
   };
 
-  if (kvConfigured()) {
-    const raw = await kvCommand<string | null>("GET", key);
-    let entries: LeaderboardEntry[] = [];
-    if (raw) {
-      try {
-        entries = JSON.parse(raw) as LeaderboardEntry[];
-      } catch {
-        entries = [];
-      }
-    }
-    // Keep best per nick (case-insensitive)
-    const nickKey = full.nick.toLowerCase();
-    entries = entries.filter((e) => e.nick.toLowerCase() !== nickKey);
-    entries.push(full);
-    entries = sortEntries(entries).slice(0, MAX_ENTRIES);
-    await kvCommand("SET", key, JSON.stringify(entries));
-    // Expire after ~3 days
-    await kvCommand("EXPIRE", key, 60 * 60 * 72);
-    return { dayKey, entries, storage: "kv" };
+  const { entries: stored, storage } = await readRaw(dayKey);
+  let base = stored;
+  if (base.length === 0) {
+    base = demoEntriesForDay(dayKey);
   }
 
-  const store = memStore();
-  let entries = store.get(key) ?? [];
   const nickKey = full.nick.toLowerCase();
-  entries = entries.filter((e) => e.nick.toLowerCase() !== nickKey);
+  // Drop prior same nick (including demo with same nick — real replaces)
+  let entries = base.filter((e) => e.nick.toLowerCase() !== nickKey);
   entries.push(full);
+  // Keep other demos so board stays lively; real ranks by score
+  entries = mergeWithSeeds(dayKey, entries);
   entries = sortEntries(entries).slice(0, MAX_ENTRIES);
-  store.set(key, entries);
-  return { dayKey, entries, storage: "memory" };
+  await writeRaw(dayKey, entries, storage);
+  return { dayKey, entries, storage };
 }
 
 /** Basic sliding-window rate limit. Returns true if allowed. */
@@ -175,14 +275,12 @@ export function sanitizeNick(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim().slice(0, 16);
   if (trimmed.length < 2) return null;
-  // Letters, numbers, spaces, _ - and common punctuation; block control chars
   if (!/^[\p{L}\p{N} _.\-']+$/u.test(trimmed)) return null;
   return trimmed;
 }
 
 export function sanitizeEmoji(raw: unknown): string {
   if (typeof raw !== "string" || !raw.trim()) return "🐦";
-  // Keep a short emoji / glyph cluster
   const e = [...raw.trim()].slice(0, 4).join("");
   return e || "🐦";
 }
@@ -193,3 +291,4 @@ export function clampScore(n: unknown): number | null {
   if (v < 0 || v > 9999) return null;
   return v;
 }
+

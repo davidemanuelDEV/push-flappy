@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import type { CalibPhase } from "@/lib/pose";
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
 
@@ -219,6 +221,9 @@ export function LeaderboardPanel({
   onClose,
   onRefresh,
   onSubmit,
+  variant = "overlay",
+  allowSubmit = true,
+  playHref = "/play",
 }: {
   open: boolean;
   dayKey: string;
@@ -237,18 +242,38 @@ export function LeaderboardPanel({
   onClose: () => void;
   onRefresh: () => void;
   onSubmit: () => void;
+  /** overlay = in-game modal; page = dedicated /board (no camera). */
+  variant?: "overlay" | "page";
+  allowSubmit?: boolean;
+  playHref?: string;
 }) {
   if (!open) return null;
-  return (
-    <div className="absolute inset-0 z-30 flex items-end justify-center bg-black/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center">
-      <div className="flex max-h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-zinc-900 shadow-xl">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-          <div>
-            <p className="text-sm font-bold">Daily board</p>
-            <p className="text-[11px] text-zinc-400">
-              {dayKey} · PT seed · {storage === "memory" ? "demo store" : "live"}
-            </p>
-          </div>
+
+  const isPage = variant === "page";
+
+  const panel = (
+    <div
+      className={
+        isPage
+          ? "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-xl"
+          : "flex max-h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-zinc-900 shadow-xl"
+      }
+    >
+      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+        <div>
+          <p className="text-sm font-bold">Daily board</p>
+          <p className="text-[11px] text-zinc-400">
+            {dayKey} · PT seed · {storage === "memory" ? "demo store" : "live"}
+          </p>
+        </div>
+        {isPage ? (
+          <Link
+            href="/"
+            className="inline-flex min-h-10 items-center justify-center rounded-full bg-zinc-800 px-3 text-xs font-semibold"
+          >
+            Home
+          </Link>
+        ) : (
           <button
             type="button"
             onClick={onClose}
@@ -256,90 +281,161 @@ export function LeaderboardPanel({
           >
             ✕
           </button>
-        </div>
+        )}
+      </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-          {loading && (
-            <p className="py-6 text-center text-sm text-zinc-400">Loading…</p>
-          )}
-          {error && (
-            <p className="py-2 text-center text-sm text-rose-300">{error}</p>
-          )}
-          {!loading && !error && entries.length === 0 && (
-            <p className="py-6 text-center text-sm text-zinc-400">
-              No scores yet today. Be first.
-            </p>
-          )}
-          <ol className="space-y-1.5">
-            {entries.map((e, i) => (
-              <li
-                key={`${e.nick}-${e.at}`}
-                className="flex items-center gap-2 rounded-xl bg-zinc-800/70 px-3 py-2"
-              >
-                <span className="w-6 text-xs font-bold text-zinc-500">
-                  {i + 1}
-                </span>
-                <span className="text-lg" aria-hidden>
-                  {e.emoji || "🐦"}
-                </span>
-                <span className="flex-1 truncate text-sm font-semibold">
-                  {e.nick}
-                </span>
-                <span className="tabular-nums text-sm font-bold">
-                  {e.score}
-                </span>
-                <span className="text-[10px] text-zinc-500">{e.reps}r</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="border-t border-zinc-800 px-4 py-3 space-y-2">
-          <p className="text-[11px] text-zinc-400">
-            Post this run ({score} · {reps} reps) with an anonymous nick — no
-            accounts.
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        {loading && (
+          <p className="py-6 text-center text-sm text-zinc-400">Loading…</p>
+        )}
+        {error && (
+          <p className="py-2 text-center text-sm text-rose-300">{error}</p>
+        )}
+        {!loading && !error && entries.length === 0 && (
+          <p className="py-6 text-center text-sm text-zinc-400">
+            No scores yet today. Be first.
           </p>
-          <div className="flex gap-2">
-            <input
-              aria-label="Emoji"
-              value={emoji}
-              onChange={(e) => onEmoji(e.target.value)}
-              className="w-14 rounded-xl border border-zinc-700 bg-zinc-950 px-2 py-2 text-center text-lg"
-              maxLength={4}
-            />
-            <input
-              aria-label="Nick"
-              value={nick}
-              onChange={(e) => onNick(e.target.value)}
-              placeholder="Nick"
-              className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
-              maxLength={16}
-            />
-          </div>
-          {submitMsg && (
-            <p className="text-xs text-emerald-400">{submitMsg}</p>
-          )}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={submitting}
-              className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950 disabled:opacity-50"
+        )}
+        <ol className="space-y-1.5">
+          {entries.map((e, i) => (
+            <li
+              key={`${e.nick}-${e.at}-${e.country ?? "XX"}`}
+              className="flex items-center gap-2 rounded-xl bg-zinc-800/70 px-3 py-2"
             >
-              {submitting ? "Posting…" : "Post score"}
-            </button>
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="flex min-h-11 items-center justify-center rounded-xl bg-zinc-700 px-3 text-sm font-semibold"
-            >
-              Refresh
-            </button>
-          </div>
-        </div>
+              <span className="w-6 text-xs font-bold text-zinc-500">{i + 1}</span>
+              <span className="text-lg" aria-hidden>
+                {e.emoji || "🐦"}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                {e.nick}
+                {e.demo ? (
+                  <span className="ml-1 text-[10px] font-medium text-zinc-500">
+                    demo
+                  </span>
+                ) : null}
+              </span>
+              <span
+                className="shrink-0 text-sm"
+                title={normalizeIso(e.country)}
+                aria-label={`Country ${normalizeIso(e.country)}`}
+              >
+                {countryFlagEmoji(e.country)}
+              </span>
+              <span className="w-7 shrink-0 text-right text-[10px] font-semibold text-zinc-500">
+                {normalizeIso(e.country)}
+              </span>
+              <span className="w-8 shrink-0 text-right tabular-nums text-sm font-bold">
+                {e.score}
+              </span>
+              <span className="w-7 shrink-0 text-right text-[10px] text-zinc-500">
+                {e.reps}r
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="space-y-2 border-t border-zinc-800 px-4 py-3">
+        {allowSubmit ? (
+          <>
+            <p className="text-[11px] text-zinc-400">
+              Post this run ({score} · {reps} reps) with an anonymous nick — no
+              accounts. Country is detected from your connection.
+            </p>
+            <div className="flex gap-2">
+              <input
+                aria-label="Emoji"
+                value={emoji}
+                onChange={(e) => onEmoji(e.target.value)}
+                className="w-14 rounded-xl border border-zinc-700 bg-zinc-950 px-2 py-2 text-center text-lg"
+                maxLength={4}
+              />
+              <input
+                aria-label="Nick"
+                value={nick}
+                onChange={(e) => onNick(e.target.value)}
+                placeholder="Nick"
+                className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+                maxLength={16}
+              />
+            </div>
+            {submitMsg && (
+              <p className="text-xs text-emerald-400">{submitMsg}</p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={submitting}
+                className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950 disabled:opacity-50"
+              >
+                {submitting ? "Posting…" : "Post score"}
+              </button>
+              <button
+                type="button"
+                onClick={onRefresh}
+                className="flex min-h-11 items-center justify-center rounded-xl bg-zinc-700 px-3 text-sm font-semibold"
+              >
+                Refresh
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-[11px] text-zinc-400">
+              Same pipe seed for everyone today (Pacific). Play a run, then post
+              your score from the game — country is auto-detected.
+            </p>
+            <div className="flex gap-2">
+              <Link
+                href={playHref}
+                className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-emerald-500 px-3 font-bold text-zinc-950"
+              >
+                Play to post
+              </Link>
+              <button
+                type="button"
+                onClick={onRefresh}
+                className="flex min-h-11 items-center justify-center rounded-xl bg-zinc-700 px-3 text-sm font-semibold"
+              >
+                Refresh
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
+
+  if (isPage) {
+    return (
+      <div className="relative flex min-h-[100dvh] w-full flex-col bg-zinc-950 text-white">
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {panel}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 z-30 flex items-end justify-center bg-black/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center">
+      {panel}
+    </div>
+  );
+}
+
+function normalizeIso(raw: unknown): string {
+  if (typeof raw !== "string" || raw.trim().length !== 2) return "XX";
+  return raw.trim().toUpperCase();
+}
+
+function countryFlagEmoji(raw: unknown): string {
+  const code = normalizeIso(raw);
+  if (code === "XX") return "🌍";
+  const A = 0x1f1e6;
+  return [...code]
+    .map((c) => String.fromCodePoint(A + (c.charCodeAt(0) - 65)))
+    .join("");
 }
 
 export type { CoachMessage };
