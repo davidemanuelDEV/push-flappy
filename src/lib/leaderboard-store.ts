@@ -1,6 +1,7 @@
 /**
  * Daily leaderboard persistence.
- * Prefer Vercel KV / Upstash REST when env is set; otherwise in-memory
+ * Prefer Vercel KV / Upstash REST when env is set (`KV_REST_API_*` or
+ * `UPSTASH_REDIS_REST_*`); otherwise in-memory
  * (best-effort on Hobby — lost on cold starts / multi-instance).
  * Demo seed rows are gated: never in production unless ALLOW_DEMO_LEADERBOARD=1.
  */
@@ -56,10 +57,24 @@ export function rateLimitStore(): Map<string, number[]> {
   return g.__pushFlappyRl;
 }
 
+/**
+ * Vercel KV marketplace injects KV_REST_API_*; a raw Upstash Redis
+ * database injects UPSTASH_REDIS_REST_*. Same REST protocol — accept either pair.
+ * Prefer a complete KV_* pair; otherwise a complete UPSTASH_* pair.
+ * Never log these values.
+ */
+export function kvRestConfig(): { url: string; token: string } | null {
+  const kvUrl = process.env.KV_REST_API_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN;
+  if (kvUrl && kvToken) return { url: kvUrl, token: kvToken };
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (upstashUrl && upstashToken) return { url: upstashUrl, token: upstashToken };
+  return null;
+}
+
 export function kvConfigured(): boolean {
-  return Boolean(
-    process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
-  );
+  return kvRestConfig() != null;
 }
 
 /** Demo seeds only outside production, or when explicitly allowed. */
@@ -71,9 +86,9 @@ export function demoLeaderboardAllowed(): boolean {
 async function kvCommand<T>(
   ...args: (string | number)[]
 ): Promise<T | null> {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return null;
+  const creds = kvRestConfig();
+  if (!creds) return null;
+  const { url, token } = creds;
   const res = await fetch(`${url}`, {
     method: "POST",
     headers: {

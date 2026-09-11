@@ -25,6 +25,7 @@ npm run build && npm start
 ## Viral sharing & daily board
 
 ### Beat-me challenges
+- On wipeout, the run is **POSTed once** to `/api/leaderboard` automatically (saved nick/emoji, default Anon / 🐦). The wipeout Post CTA shows **Posted** / disabled after success — Challenge a friend stays the filled primary.
 - On wipeout, **Share challenge** builds a deep link: `https://pushflappy.com/play?beat={score}` (optional `&reps=`).
 - Share text includes score + wipeout quip + dare CTA. Prefer `navigator.share`; clipboard fallback.
 - Opening `/play?beat=N` shows a **bar-to-beat** in the HUD. Clearing a higher score triggers a **you beat them** share prompt.
@@ -61,6 +62,8 @@ npm run build && npm start
 |---------|---------|
 | `KV_REST_API_URL` | Upstash / Vercel KV REST URL (required for durable reminder storage) |
 | `KV_REST_API_TOKEN` | REST token |
+| `UPSTASH_REDIS_REST_URL` | Alias for `KV_REST_API_URL` (raw Upstash Redis REST) |
+| `UPSTASH_REDIS_REST_TOKEN` | Alias for `KV_REST_API_TOKEN` |
 | `RESEND_API_KEY` | Optional. If set, sends a one-line welcome. If absent, **capture-only** — wire a cron later to email “Push day — beat today’s board”. |
 | `RESEND_FROM` | Optional From header for Resend (defaults to Resend onboarding address) |
 
@@ -74,8 +77,12 @@ When these env vars are set on the Vercel project, scores persist via Redis REST
 |---------|---------|
 | `KV_REST_API_URL` | Upstash / Vercel KV REST URL |
 | `KV_REST_API_TOKEN` | REST token |
+| `UPSTASH_REDIS_REST_URL` | Alias for `KV_REST_API_URL` (same REST protocol) |
+| `UPSTASH_REDIS_REST_TOKEN` | Alias for `KV_REST_API_TOKEN` |
 
-In the Vercel dashboard: **Storage → Create Database → KV (Upstash)** → connect to the `push-flappy` project (auto-injects the vars), then redeploy.
+Either complete pair works (`KV_*` preferred when both are set). No paid SDK.
+
+In the Vercel dashboard: **Storage → Create Database → KV (Upstash)** → connect to the `push-flappy` project (auto-injects the vars), then redeploy. A raw Upstash Redis database can instead set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
 
 Without KV, the API still works with an **in-memory** store (lost on cold starts / multi-instance). Responses include `storage: "kv" | "memory"` and `demo: boolean` so Growth can tell honesty from flavor.
 
@@ -85,7 +92,7 @@ Without KV, the API still works with an **in-memory** store (lost on cold starts
 |---------|---------|
 | `ALLOW_DEMO_LEADERBOARD` | Set to `1` to force demo seeds even in production (local/staging only) |
 
-**David / deploy:** set `KV_REST_API_URL` + `KV_REST_API_TOKEN` on the Vercel project for durable board + reminders, then redeploy.
+**David / deploy:** set `KV_REST_API_URL` + `KV_REST_API_TOKEN` (or the `UPSTASH_REDIS_REST_*` aliases) on the Vercel project for durable board + reminders, then redeploy.
 
 ### Growth analytics
 - `@vercel/analytics` + `@vercel/speed-insights` in the root layout (free tier).
