@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 const PushFlappyGame = dynamic(() => import("@/components/PushFlappyGame"), {
   ssr: false,
@@ -20,5 +20,15 @@ export default function PlayPage() {
     };
   }, []);
 
-  return <PushFlappyGame />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[100dvh] items-center justify-center bg-zinc-950 text-white">
+          <p className="text-lg font-medium">Loading game…</p>
+        </div>
+      }
+    >
+      <PushFlappyGame />
+    </Suspense>
+  );
 }
