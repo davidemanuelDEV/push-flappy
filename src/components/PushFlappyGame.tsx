@@ -19,6 +19,7 @@ import {
   type GameState,
 } from "@/lib/game";
 import { laDayKey } from "@/lib/daily";
+import { track } from "@/lib/analytics";
 import {
   mapNormToBirdY,
   PoseTracker,
@@ -125,6 +126,12 @@ export default function PushFlappyGame() {
     beatTargetRef.current = beatTarget;
     victoryFiredRef.current = false;
     setBeatVictory(false);
+  }, [beatTarget]);
+
+  useEffect(() => {
+    if (beatTarget != null && beatTarget >= 0) {
+      track("challenge_open", { beat: beatTarget });
+    }
   }, [beatTarget]);
 
   useEffect(() => {
@@ -409,6 +416,7 @@ export default function PushFlappyGame() {
         const line = pickWipeoutLine(lastWipeoutRef.current);
         lastWipeoutRef.current = line;
         pendingWipeoutRef.current = line;
+        track("play_wipeout", { score: state.score, reps: lastPoseSampleRef.current.reps });
       }
       gameRef.current = state;
       if (crashRef.current) {
@@ -453,6 +461,7 @@ export default function PushFlappyGame() {
     const day = laDayKey();
     gameRef.current = startGame({ ...createInitialState(g.width, g.height, loadHighScore(), day), birdY: g.birdY });
     setUi((u) => ({ ...u, status: "playing", score: 0, reps: 0, highScore: loadHighScore() }));
+    track("play_start", beatTarget != null ? { beat: beatTarget } : undefined);
   };
 
   const onRestart = () => {
@@ -497,24 +506,28 @@ export default function PushFlappyGame() {
 
   const onShareWhatsApp = () => {
     const payload = currentSharePayload();
+    track("share_click", { channel: "wa" });
     openShareWindow(whatsappShareUrl(payload.text));
     flashShareStatus("opened");
   };
 
   const onShareX = () => {
     const payload = currentSharePayload();
+    track("share_click", { channel: "x" });
     openShareWindow(xIntentUrl({ text: payload.textNoUrl, url: payload.url }));
     flashShareStatus("opened");
   };
 
   const onCopyLink = async () => {
     const payload = currentSharePayload();
+    track("share_click", { channel: "copy" });
     // Prefer beat-me URL; include full challenge text for paste-anywhere sharing.
     const result = await copyToClipboard(`${payload.text}`);
     flashShareStatus(result);
   };
 
   const onSaveCard = () => {
+    track("share_click", { channel: "card" });
     try {
       const card = currentShareCard();
       downloadShareCard(
@@ -529,6 +542,7 @@ export default function PushFlappyGame() {
 
   const onShareMore = async () => {
     const payload = currentSharePayload();
+    track("share_click", { channel: "native" });
     let file: File | null = null;
     try {
       file = await shareCardFile(currentShareCard());
@@ -551,7 +565,7 @@ export default function PushFlappyGame() {
       setBoardDay(day);
       const res = await fetch(`/api/leaderboard?day=${encodeURIComponent(day)}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Board error ${res.status}`);
-      const data = (await res.json()) as { dayKey: string; entries: LeaderboardEntry[]; storage: "kv" | "memory" };
+      const data = (await res.json()) as { dayKey: string; entries: LeaderboardEntry[]; storage: "kv" | "memory"; demo?: boolean };
       setBoardEntries(data.entries ?? []);
       setBoardStorage(data.storage);
       setBoardDay(data.dayKey);
@@ -592,7 +606,12 @@ export default function PushFlappyGame() {
       if (!res.ok) throw new Error(data?.error || `Submit failed (${res.status})`);
       setBoardEntries(data.entries ?? []);
       setBoardStorage(data.storage);
-      setSubmitMsg(data.storage === "memory" ? "Posted (demo store — connect KV for persistence)" : "Posted to today’s board!");
+      track("board_submit", { score: ui.score, reps: ui.reps, storage: data.storage });
+      setSubmitMsg(
+        data.storage === "memory"
+          ? "Posted (memory — set KV_REST_API_URL + KV_REST_API_TOKEN for persistence)"
+          : "Posted to today’s board!"
+      );
     } catch (e) {
       setBoardError(e instanceof Error ? e.message : "Submit failed");
     } finally {

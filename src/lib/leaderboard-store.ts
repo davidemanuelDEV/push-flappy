@@ -2,7 +2,7 @@
  * Daily leaderboard persistence.
  * Prefer Vercel KV / Upstash REST when env is set; otherwise in-memory
  * (best-effort on Hobby — lost on cold starts / multi-instance).
- * Always surfaces demo seed rows when a day is empty so the board feels alive.
+ * Demo seed rows are gated: never in production unless ALLOW_DEMO_LEADERBOARD=1.
  */
 
 import { laDayKey } from "./daily";
@@ -25,6 +25,8 @@ export type LeaderboardPayload = {
   dayKey: string;
   entries: LeaderboardEntry[];
   storage: "kv" | "memory";
+  /** True when response includes (or would seed) demo flavor rows. */
+  demo: boolean;
 };
 
 const MAX_ENTRIES = 50;
@@ -54,10 +56,16 @@ export function rateLimitStore(): Map<string, number[]> {
   return g.__pushFlappyRl;
 }
 
-function kvConfigured(): boolean {
+export function kvConfigured(): boolean {
   return Boolean(
     process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
   );
+}
+
+/** Demo seeds only outside production, or when explicitly allowed. */
+export function demoLeaderboardAllowed(): boolean {
+  if (process.env.ALLOW_DEMO_LEADERBOARD === "1") return true;
+  return process.env.NODE_ENV !== "production";
 }
 
 async function kvCommand<T>(
@@ -127,16 +135,19 @@ export function demoEntriesForDay(dayKey: string): LeaderboardEntry[] {
   );
 }
 
-
 /**
- * Merge stored rows with demo seeds: real players win nick collisions;
- * seeds fill gaps so the board never looks empty.
+ * Merge stored rows with demo seeds (when demos allowed): real players win
+ * nick collisions; seeds fill gaps so the board never looks empty in dev.
  */
 export function mergeWithSeeds(
   dayKey: string,
   stored: LeaderboardEntry[]
 ): LeaderboardEntry[] {
   const normalized = stored.map(normalizeEntry);
+  if (!demoLeaderboardAllowed()) {
+    // Strip any persisted demo rows in production so the board stays honest.
+    return sortEntries(normalized.filter((e) => !e.demo)).slice(0, MAX_ENTRIES);
+  }
   const seeds = demoEntriesForDay(dayKey);
   if (normalized.length === 0) return seeds;
 
@@ -185,12 +196,15 @@ async function writeRaw(
   memStore().set(key, payload);
 }
 
-/** Persist demo seeds once per day when store is empty (KV or memory cold start). */
+/** Persist demo seeds once per day when store is empty (dev / ALLOW_DEMO only). */
 async function ensureSeeded(
   dayKey: string,
   storage: "kv" | "memory",
   entries: LeaderboardEntry[]
 ): Promise<LeaderboardEntry[]> {
+  if (!demoLeaderboardAllowed()) {
+    return entries.filter((e) => !e.demo);
+  }
   if (entries.length > 0) return entries;
   const mark = `${storage}:${dayKey}`;
   const seeds = demoEntriesForDay(dayKey);
@@ -211,10 +225,13 @@ export async function getDailyBoard(
   const { entries: stored, storage } = await readRaw(dayKey);
   const ensured = await ensureSeeded(dayKey, storage, stored);
   const entries = mergeWithSeeds(dayKey, ensured);
+  const demo =
+    demoLeaderboardAllowed() && entries.some((e) => e.demo);
   return {
     dayKey,
     entries: sortEntries(entries).slice(0, MAX_ENTRIES),
     storage,
+    demo,
   };
 }
 
@@ -237,8 +254,10 @@ export async function submitScore(
   };
 
   const { entries: stored, storage } = await readRaw(dayKey);
-  let base = stored;
-  if (base.length === 0) {
+  let base = stored.filter((e) =>
+    demoLeaderboardAllowed() ? true : !e.demo
+  );
+  if (base.length === 0 && demoLeaderboardAllowed()) {
     base = demoEntriesForDay(dayKey);
   }
 
@@ -246,11 +265,25 @@ export async function submitScore(
   // Drop prior same nick (including demo with same nick — real replaces)
   let entries = base.filter((e) => e.nick.toLowerCase() !== nickKey);
   entries.push(full);
-  // Keep other demos so board stays lively; real ranks by score
   entries = mergeWithSeeds(dayKey, entries);
   entries = sortEntries(entries).slice(0, MAX_ENTRIES);
-  await writeRaw(dayKey, entries, storage);
-  return { dayKey, entries, storage };
+  // Persist real (+ demos only when allowed). Never write demos in prod.
+  const toPersist = demoLeaderboardAllowed()
+    ? entries
+    : entries.filter((e) => !e.demo);
+  await writeRaw(dayKey, toPersist, storage);
+  const demo =
+    demoLeaderboardAllowed() && entries.some((e) => e.demo);
+  return { dayKey, entries, storage, demo };
+}
+
+/** Count real (non-demo) board entries for a day — for /api/stats. */
+export async function countRealEntries(
+  dayKey: string = laDayKey()
+): Promise<{ count: number; storage: "kv" | "memory" }> {
+  const { entries, storage } = await readRaw(dayKey);
+  const count = entries.filter((e) => !e.demo).length;
+  return { count, storage };
 }
 
 /** Basic sliding-window rate limit. Returns true if allowed. */
@@ -291,4 +324,3 @@ export function clampScore(n: unknown): number | null {
   if (v < 0 || v > 9999) return null;
   return v;
 }
-

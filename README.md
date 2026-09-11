@@ -75,7 +75,20 @@ When these env vars are set on the Vercel project, scores persist via Redis REST
 
 In the Vercel dashboard: **Storage → Create Database → KV (Upstash)** → connect to the `push-flappy` project (auto-injects the vars), then redeploy.
 
-Without KV, the API still works with an **in-memory** store (fine for demos; lost on cold starts / multi-instance). The board UI labels this as “demo store”.
+Without KV, the API still works with an **in-memory** store (lost on cold starts / multi-instance). Responses include `storage: "kv" | "memory"` and `demo: boolean` so Growth can tell honesty from flavor.
+
+**Demo seeds:** fake board rows are **off in production** unless `ALLOW_DEMO_LEADERBOARD=1`. In development they still fill an empty board. An empty production board shows clear empty-state copy (not a fake-full list).
+
+| Env var | Purpose |
+|---------|---------|
+| `ALLOW_DEMO_LEADERBOARD` | Set to `1` to force demo seeds even in production (local/staging only) |
+
+**David / deploy:** set `KV_REST_API_URL` + `KV_REST_API_TOKEN` on the Vercel project for durable board + reminders, then redeploy.
+
+### Growth analytics
+- `@vercel/analytics` + `@vercel/speed-insights` in the root layout (free tier).
+- Client events: `play_start`, `play_wipeout`, `challenge_open` (beat), `share_click` (channel wa|x|copy|native|card), `board_submit`, `reminder_optin`.
+- Optional `GET /api/stats` — `{ dayKey, boardEntriesToday, reminderCount, storage, demoAllowed }` (no PII).
 
 ## Phone / HTTPS
 
