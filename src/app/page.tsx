@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import IosInstallTip from "@/components/IosInstallTip";
+import ReminderCapture from "@/components/ReminderCapture";
 
 export default function HomePage() {
   return (
@@ -135,6 +136,10 @@ export default function HomePage() {
               victory share when they clear it.
             </p>
           </div>
+        </section>
+
+        <section className="space-y-2" aria-label="Challenge reminders">
+          <ReminderCapture source="landing" />
         </section>
 
         <IosInstallTip />

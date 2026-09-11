@@ -40,6 +40,30 @@ npm run build && npm start
 - In-memory IP rate limits (GET ~60/min, POST ~12/min per IP).
 - Best score per nick kept per day.
 
+
+### Challenge reminders (email capture)
+- Compact opt-in on **game over**, plus light forms on `/board` and the landing page.
+- Copy: “Get reminder to challenge again” → success: “You’re on the list”.
+- No accounts. Capture only unless Resend is configured.
+
+#### Reminders API
+- `POST /api/reminders` — body:
+  ```json
+  { "email": "you@example.com", "source": "gameover|board|landing", "timezone?": "America/Los_Angeles", "dayKey?": "YYYY-MM-DD" }
+  ```
+- Validates email; IP rate-limit (~8/min); dedupes by normalized email.
+- Stores `email`, `createdAt`, `dayKey`, `timezone` (default America/Los_Angeles), `source`.
+- Persistence: same KV env as the leaderboard (`KV_REST_API_URL` / `KV_REST_API_TOKEN`). Without KV → in-memory (not durable across cold starts).
+
+| Env var | Purpose |
+|---------|---------|
+| `KV_REST_API_URL` | Upstash / Vercel KV REST URL (required for durable reminder storage) |
+| `KV_REST_API_TOKEN` | REST token |
+| `RESEND_API_KEY` | Optional. If set, sends a one-line welcome. If absent, **capture-only** — wire a cron later to email “Push day — beat today’s board”. |
+| `RESEND_FROM` | Optional From header for Resend (defaults to Resend onboarding address) |
+
+Production paths avoid logging full emails (masked if logged in dev).
+
 #### Persistence (Vercel KV / Upstash)
 
 When these env vars are set on the Vercel project, scores persist via Redis REST:
@@ -78,7 +102,8 @@ Phone browsers require **HTTPS** (or localhost) for `getUserMedia`. Deploy to Ve
 
 - Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4
 - `@mediapipe/tasks-vision` (client-only)
-- Optional Vercel KV / Upstash for the daily board
+- Optional Vercel KV / Upstash for the daily board + reminder emails
+- Optional Resend (`RESEND_API_KEY`) for welcome mail; otherwise capture-only
 - No accounts, no company branding
 
 ## Routes
@@ -88,3 +113,5 @@ Phone browsers require **HTTPS** (or localhost) for `getUserMedia`. Deploy to Ve
 | `/` | Marketing / how-to-play + Start CTA |
 | `/play` | Fullscreen camera game (`?beat=N` challenge) |
 | `/api/leaderboard` | Daily board GET/POST |
+| `/api/reminders` | Email reminder capture POST |
+| `/board` | Camera-free daily board + reminder opt-in |

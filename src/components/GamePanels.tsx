@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import ReminderCapture from "@/components/ReminderCapture";
 import type { CalibPhase } from "@/lib/pose";
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
 
@@ -166,6 +167,9 @@ export function GameOverPanel({
         <p className="mt-2 text-[11px] text-zinc-500 sm:text-xs">
           Play again re-sets your plank start position.
         </p>
+        <div className="mt-3">
+          <ReminderCapture source="gameover" compact />
+        </div>
         <div className="mt-4 flex flex-col gap-2 sm:mt-5">
           {beatVictory && onShareVictory && (
             <button
@@ -336,6 +340,9 @@ export function LeaderboardPanel({
       </div>
 
       <div className="space-y-2 border-t border-zinc-800 px-4 py-3">
+        {isPage && (
+          <ReminderCapture source="board" className="mb-1" />
+        )}
         {allowSubmit ? (
           <>
             <p className="text-[11px] text-zinc-400">
