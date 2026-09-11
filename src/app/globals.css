@@ -35,3 +35,62 @@ body.play-lock {
   width: 100%;
   height: 100%;
 }
+
+/* Landing hero motion — subtle, respects reduced motion */
+@keyframes pf-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pf-pipes {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+.pf-float {
+  animation: pf-float 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.pf-pipes {
+  animation: pf-pipes 3.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-float,
+  .pf-pipes {
+    animation: none;
+  }
+}
+
+/* Play splash pulse */
+@keyframes pf-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pf-splash-mark {
+  animation: pf-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-splash-mark {
+    animation: none;
+  }
+}

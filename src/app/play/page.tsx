@@ -2,14 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { Suspense, useEffect } from "react";
+import PlaySplash from "@/components/PlaySplash";
 
 const PushFlappyGame = dynamic(() => import("@/components/PushFlappyGame"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-[100dvh] items-center justify-center bg-zinc-950 text-white">
-      <p className="text-lg font-medium">Loading game…</p>
-    </div>
-  ),
+  loading: () => <PlaySplash label="Loading game…" />,
 });
 
 export default function PlayPage() {
@@ -21,13 +18,7 @@ export default function PlayPage() {
   }, []);
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-[100dvh] items-center justify-center bg-zinc-950 text-white">
-          <p className="text-lg font-medium">Loading game…</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<PlaySplash label="Loading game…" />}>
       <PushFlappyGame />
     </Suspense>
   );

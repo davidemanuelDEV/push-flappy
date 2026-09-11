@@ -51,6 +51,7 @@ import {
   OrientationTip,
   ReadyPanel,
 } from "@/components/GamePanels";
+import PlaySplash from "@/components/PlaySplash";
 
 type CamStatus = "idle" | "requesting" | "ready" | "error" | "denied";
 
@@ -493,6 +494,14 @@ export default function PushFlappyGame() {
     void loadBoard();
   };
 
+  // Landing “Daily board” deep-link (?board=1)
+  useEffect(() => {
+    if (searchParams.get("board") !== "1") return;
+    setBoardOpen(true);
+    setSubmitMsg(null);
+    void loadBoard();
+  }, [searchParams, loadBoard]);
+
   const onSubmitScore = async () => {
     setSubmitting(true);
     setSubmitMsg(null);
@@ -550,8 +559,14 @@ export default function PushFlappyGame() {
         <video ref={videoRef} playsInline muted autoPlay className="pointer-events-none absolute h-px w-px opacity-0" />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none" />
         {(camStatus === "requesting" || (camStatus === "ready" && !modelReady)) && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-6 text-center">
-            <p className="text-lg font-medium">{camStatus === "requesting" ? "Requesting camera…" : "Loading pose model…"}</p>
+          <div className="absolute inset-0 z-10">
+            <PlaySplash
+              label={
+                camStatus === "requesting"
+                  ? "Requesting camera…"
+                  : "Loading pose model…"
+              }
+            />
           </div>
         )}
         {(camStatus === "denied" || camStatus === "error") && (

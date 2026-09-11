@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import RegisterSW from "@/components/RegisterSW";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,11 +16,14 @@ const geistMono = Geist_Mono({
 const siteTitle = "Push Flappy — Flappy Bird for push day";
 const siteDescription =
   "Control Flappy Bird with push-ups. Webcam or phone camera + MediaPipe Pose. No downloads, no accounts. Works on phone over HTTPS.";
+const siteUrl = "https://pushflappy.com";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: siteTitle,
   description: siteDescription,
   applicationName: "Push Flappy",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Push Flappy",
@@ -28,16 +32,29 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     title: siteTitle,
     description: siteDescription,
     type: "website",
     siteName: "Push Flappy",
+    url: siteUrl,
+    images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "Push Flappy" }],
   },
   twitter: {
     card: "summary",
     title: siteTitle,
     description: siteDescription,
+    images: ["/icons/icon-512.png"],
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -50,7 +67,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#09090b",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#09090b" },
+  ],
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -64,6 +85,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-[100dvh] antialiased`}
       >
         {children}
+        <RegisterSW />
       </body>
     </html>
   );
