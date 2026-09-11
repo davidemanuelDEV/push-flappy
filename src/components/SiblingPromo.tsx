@@ -27,7 +27,7 @@ export default function SiblingPromo({
         onClick={() => track("sibling_click", { from: "push", surface })}
         className="font-medium text-amber-200/70 underline-offset-2 hover:text-amber-200 hover:underline"
       >
-        {siblingPromoCopy(surface)}
+        {siblingPromoCopy()}
       </a>
     </p>
   );
