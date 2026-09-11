@@ -3,6 +3,7 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { laDayKey } from "@/lib/daily";
 import type { ReminderSource } from "@/lib/reminders-store";
+import { track } from "@/lib/analytics";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -55,6 +56,7 @@ export default function ReminderCapture({
           return;
         }
         setStatus("success");
+        track("reminder_optin", { source });
       } catch {
         setStatus("error");
         setError("Network error — try again");

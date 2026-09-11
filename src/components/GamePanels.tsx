@@ -355,7 +355,12 @@ export function LeaderboardPanel({
         <div>
           <p className="text-sm font-bold">Daily board</p>
           <p className="text-[11px] text-zinc-400">
-            {dayKey} · PT seed · {storage === "memory" ? "demo store" : storage === "kv" ? "live" : "…"}
+            {dayKey} · PT seed ·{" "}
+            {storage === "kv"
+              ? "live"
+              : storage === "memory"
+                ? "memory (not durable)"
+                : "…"}
           </p>
         </div>
         {isPage ? (
@@ -392,9 +397,14 @@ export function LeaderboardPanel({
           <p className="py-2 text-center text-sm text-rose-300">{error}</p>
         )}
         {!loading && !error && entries.length === 0 && (
-          <p className="py-6 text-center text-sm text-zinc-400">
-            No scores yet today. Be first.
-          </p>
+          <div className="py-8 text-center">
+            <p className="text-base font-semibold text-zinc-200">
+              Board is empty today
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">
+              No real scores yet — be the first to post a run.
+            </p>
+          </div>
         )}
         <ol className="space-y-1.5">
           {entries.map((e, i) => (

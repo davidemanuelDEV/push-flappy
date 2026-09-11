@@ -30,6 +30,7 @@ export default function DailyBoardPage() {
         dayKey: string;
         entries: LeaderboardEntry[];
         storage: "kv" | "memory";
+        demo?: boolean;
       };
       setEntries(data.entries ?? []);
       setStorage(data.storage);

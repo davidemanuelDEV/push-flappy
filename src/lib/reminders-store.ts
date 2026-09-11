@@ -39,7 +39,7 @@ function memStore(): Map<string, ReminderRecord> {
   return g.__pushFlappyReminders;
 }
 
-function kvConfigured(): boolean {
+export function kvConfigured(): boolean {
   return Boolean(
     process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
   );
@@ -173,6 +173,18 @@ async function maybeSendWelcome(email: string): Promise<boolean> {
     console.error("Resend welcome error");
     return false;
   }
+}
+
+/** Reminder opt-in count (no PII) — for /api/stats. */
+export async function countReminders(): Promise<{
+  count: number;
+  storage: "kv" | "memory";
+}> {
+  if (kvConfigured()) {
+    const n = await kvCommand<number>("SCARD", KEY_SET);
+    return { count: typeof n === "number" && Number.isFinite(n) ? n : 0, storage: "kv" };
+  }
+  return { count: memStore().size, storage: "memory" };
 }
 
 /**
