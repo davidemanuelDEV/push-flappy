@@ -144,7 +144,7 @@ function ShareActionButton({
       onClick={onClick}
       title={title ?? label}
       aria-label={label}
-      className={`flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-semibold leading-none touch-manipulation ${className ?? ""}`}
+      className={`flex min-h-9 min-w-9 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[9px] font-semibold leading-none touch-manipulation ${className ?? ""}`}
     >
       <span className="text-base leading-none" aria-hidden>
         {children}
@@ -163,6 +163,7 @@ export function GameOverPanel({
   beatVictory,
   shareStatus,
   onRestart,
+  onSharePrimary,
   onShareWhatsApp,
   onShareX,
   onCopyLink,
@@ -178,6 +179,7 @@ export function GameOverPanel({
   beatVictory?: boolean;
   shareStatus?: string | null;
   onRestart: () => void;
+  onSharePrimary: () => void;
   onShareWhatsApp: () => void;
   onShareX: () => void;
   onCopyLink: () => void;
@@ -185,9 +187,7 @@ export function GameOverPanel({
   onShareMore: () => void;
   onOpenBoard: () => void;
 }) {
-  const shareHeading = beatVictory
-    ? "Flex on them"
-    : "Challenge a friend";
+  const primaryLabel = beatVictory ? "Your move" : "Challenge a friend";
 
   return (
     <div className="absolute inset-0 z-10 flex items-end justify-center bg-gradient-to-t from-black/75 via-black/45 to-black/25 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:bg-black/55 sm:p-4">
@@ -217,26 +217,44 @@ export function GameOverPanel({
         {shareStatus && (
           <p className="mt-2 text-xs text-emerald-400">{shareStatus}</p>
         )}
-        <p className="mt-2 text-[11px] text-zinc-500 sm:text-xs">
+        <button
+          type="button"
+          onClick={onSharePrimary}
+          className="mt-4 flex min-h-12 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-base font-bold text-zinc-950"
+        >
+          {primaryLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onRestart}
+          className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl border border-amber-200/35 bg-transparent px-4 py-3 font-semibold text-amber-100"
+        >
+          Play again
+        </button>
+        <p className="mt-1.5 text-[11px] text-zinc-500 sm:text-xs">
           Play again re-sets your plank start position.
         </p>
-        <div className="mt-3">
-          <ReminderCapture source="gameover" compact />
-        </div>
-        <div className="mt-4 sm:mt-5">
-          <p className="mb-2 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
-            {shareHeading}
+        <button
+          type="button"
+          onClick={onOpenBoard}
+          className="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-700 px-4 py-3 font-semibold"
+        >
+          View daily board
+        </button>
+        <div className="mt-4">
+          <p className="mb-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+            More ways
           </p>
           <div
             className="flex gap-1.5"
             role="group"
-            aria-label={shareHeading}
+            aria-label="More ways to share"
           >
             <ShareActionButton
               label="WhatsApp"
               title="Share on WhatsApp"
               onClick={onShareWhatsApp}
-              className="bg-[#25D366]/text-zinc-950"
+              className="bg-[#25D366] text-zinc-950"
             >
               WA
             </ShareActionButton>
@@ -274,22 +292,10 @@ export function GameOverPanel({
             </ShareActionButton>
           </div>
         </div>
-        <div className="mt-3 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onOpenBoard}
-            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-700 px-4 py-3 font-semibold"
-          >
-            View daily board
-          </button>
-          <button
-            type="button"
-            onClick={onRestart}
-            className="flex min-h-11 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 font-bold text-zinc-950"
-          >
-            Play again
-          </button>
+        <div className="mt-3">
+          <ReminderCapture source="gameover" compact />
         </div>
+
       </div>
     </div>
   );
