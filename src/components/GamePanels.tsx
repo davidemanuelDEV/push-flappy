@@ -85,6 +85,7 @@ export function ReadyPanel({
   calibSet,
   beatTarget,
   raceId,
+  raceEntries,
   onStart,
 }: {
   canStart: boolean;
@@ -92,8 +93,10 @@ export function ReadyPanel({
   calibSet: boolean;
   beatTarget?: number | null;
   raceId?: string | null;
+  raceEntries?: Pick<LeaderboardEntry, "nick" | "emoji" | "score">[];
   onStart: () => void;
 }) {
+  const names = (raceEntries ?? []).slice(0, 10);
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 pointer-events-none">
       <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-amber-900/40 bg-stone-950/92 p-4 text-center shadow-xl backdrop-blur-md sm:p-5">
@@ -106,6 +109,11 @@ export function ReadyPanel({
         {beatTarget != null && beatTarget >= 0 && (
           <p className="mt-1 rounded-xl bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-200">
             Challenge: beat {beatTarget}
+          </p>
+        )}
+        {raceId && names.length > 0 && (
+          <p className="mt-1.5 truncate text-xs text-amber-100/85">
+            {names.map((e) => `${e.emoji || "🐦"} ${e.nick}`).join(" · ")}
           </p>
         )}
         <p className="mt-1.5 text-xs leading-relaxed text-zinc-300 sm:text-sm">

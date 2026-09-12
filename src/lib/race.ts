@@ -46,6 +46,16 @@ export function racePlayPath(id: string): string {
   return `/play?race=${encodeURIComponent(id)}`;
 }
 
+/** Body for joining a race board before the first wipeout. */
+export function raceJoinPayload(nick: string, emoji: string): {
+  nick: string;
+  emoji: string;
+  score: 0;
+  reps: 0;
+} {
+  return { nick, emoji, score: 0, reps: 0 };
+}
+
 export function raceOverlayPath(id: string): string {
   return `/race/${id}/overlay`;
 }

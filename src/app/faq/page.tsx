@@ -73,7 +73,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How do friend races work?",
-    a: "Open /race to mint one share link like /race/abc12. Friends tap it, enter a nick, and hit Play — they get the same pipe seed. Wipeouts auto-post to that race’s top-10 (latest score per nick, about 10 people). Spectators stay on the race page and watch without a camera. This is async scores, not lockstep multiplayer. Out-of-race wipeouts still use Challenge a friend.",
+    a: "Open /race to mint one share link like /race/abc12. Friends tap it and enter a nick (2–16 letters/numbers) — that name lands on the live top-10 at 0 before anyone flies. Play stays off until the nick is on the board. Wipeouts then update that same nick (latest score, about 10 people). Spectators stay on the race page and watch without a camera. This is async scores, not lockstep multiplayer. Out-of-race wipeouts still use Challenge a friend.",
   },
 ];
 

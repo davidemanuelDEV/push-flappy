@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
+import { sanitizeNick } from "@/lib/leaderboard-store";
 import { RACE_NICK_CAP, raceOverlayPath, racePlayPath, raceUrl } from "@/lib/race";
+import { postRaceJoin } from "@/lib/race-client";
 import type { RaceEntry, RacePayload } from "@/lib/race-store";
 import { copyToClipboard } from "@/lib/share";
 
@@ -13,16 +15,19 @@ const NICK_KEY = "push-flappy-nick";
 const EMOJI_KEY = "push-flappy-emoji";
 
 /**
- * Dare-first race page: nick + Play CTA + live top-10.
- * Camera is not required to spectate.
+ * Dare-first race page: required nick lands on the live top-10 at 0,
+ * then Play. Camera is not required to spectate.
  */
 export default function RaceLobby({ raceId }: { raceId: string }) {
   const router = useRouter();
   const [race, setRace] = useState<RacePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [nick, setNick] = useState("Anon");
+  const [nick, setNick] = useState("");
   const [emoji, setEmoji] = useState("🐦");
+  const [joinedNick, setJoinedNick] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,7 +49,12 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
       );
       if (!res.ok) throw new Error(`Race error ${res.status}`);
       const data = (await res.json()) as RacePayload;
-      setRace(data);
+      setRace((prev) => {
+        if (prev && prev.entries.length > data.entries.length) {
+          return { ...data, entries: prev.entries };
+        }
+        return data;
+      });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load race");
@@ -59,6 +69,89 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
     return () => clearInterval(id);
   }, [load]);
 
+  const persistNick = (clean: string, face: string) => {
+    try {
+      localStorage.setItem(NICK_KEY, clean);
+      localStorage.setItem(EMOJI_KEY, face);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const joinBoard = useCallback(
+    async (clean: string) => {
+      const face = emoji.trim() || "🐦";
+      const data = await postRaceJoin(raceId, clean, face);
+      persistNick(clean, face);
+      setRace(data);
+      setJoinedNick(clean);
+      setJoinError(null);
+      track("race_join", { race: raceId });
+      return data;
+    },
+    [emoji, raceId]
+  );
+
+  const cleanNick = sanitizeNick(nick);
+  const joined = Boolean(cleanNick && joinedNick === cleanNick);
+  const canPlay = joined && !joining;
+
+  // A saved nick from a prior visit lands on the board as soon as the lobby opens.
+  useEffect(() => {
+    let stored: string | null = null;
+    let face = "🐦";
+    try {
+      stored = localStorage.getItem(NICK_KEY);
+      face = localStorage.getItem(EMOJI_KEY) || "🐦";
+    } catch {
+      /* ignore */
+    }
+    const clean = sanitizeNick(stored);
+    if (!clean) return;
+    let cancelled = false;
+    setJoining(true);
+    void postRaceJoin(raceId, clean, face)
+      .then((data) => {
+        if (cancelled) return;
+        persistNick(clean, face);
+        setRace(data);
+        setJoinedNick(clean);
+        setJoinError(null);
+        track("race_join", { race: raceId });
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setJoinError(e instanceof Error ? e.message : "Could not join");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setJoining(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [raceId]);
+
+  const runJoin = async (clean: string) => {
+    setJoining(true);
+    setJoinError(null);
+    try {
+      await joinBoard(clean);
+    } catch (e) {
+      setJoinError(e instanceof Error ? e.message : "Could not join");
+      throw e;
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const onNickBlur = () => {
+    if (!cleanNick || joined || joining) return;
+    void runJoin(cleanNick).catch(() => {
+      /* joinError set */
+    });
+  };
+
   const onCopy = async () => {
     const url = raceUrl(raceId);
     const result = await copyToClipboard(url);
@@ -66,18 +159,27 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
     track("race_share", { race: raceId, channel: "copy" });
   };
 
-  const onPlay = () => {
-    const savedNick = nick.trim() || "Anon";
+  const onPlay = async () => {
+    if (!cleanNick || joining) return;
     try {
-      localStorage.setItem(NICK_KEY, savedNick);
-      localStorage.setItem(EMOJI_KEY, emoji.trim() || "🐦");
+      if (!joined) await runJoin(cleanNick);
+      persistNick(cleanNick, emoji.trim() || "🐦");
+      router.push(racePlayPath(raceId));
     } catch {
-      /* ignore */
+      /* stay — joinError is visible */
     }
-    router.push(racePlayPath(raceId));
   };
 
   const entries = (race?.entries ?? []).slice(0, RACE_NICK_CAP);
+  const nickHint = !nick.trim()
+    ? "Type a nick (2–16 letters or numbers) to join the board."
+    : !cleanNick
+      ? "Nick must be 2–16 letters/numbers."
+      : joining && !joined
+        ? "Putting your name on the board…"
+        : joined
+          ? "You’re on the live top-10. Play when ready."
+          : null;
 
   return (
     <main className="relative mx-auto flex min-h-[100dvh] max-w-lg flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -109,7 +211,7 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
           {raceId.toUpperCase()}
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-stone-400">
-          Join with a nick, play, and watch the live top-10. Spectators stay
+          Put a nick on the live top-10 before anyone flies. Spectators stay
           here — no camera needed.
         </p>
       </section>
@@ -126,19 +228,38 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
           <input
             aria-label="Nick"
             value={nick}
-            onChange={(e) => setNick(e.target.value)}
-            placeholder="Nick"
+            onChange={(e) => {
+              setNick(e.target.value);
+              setJoinError(null);
+            }}
+            onBlur={onNickBlur}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || !cleanNick || joining) return;
+              e.preventDefault();
+              void runJoin(cleanNick).catch(() => {
+                /* joinError set */
+              });
+            }}
+            placeholder="Your nick"
             className="min-w-0 flex-1 rounded-xl border border-amber-900/50 bg-stone-950 px-3 py-2 text-sm"
             maxLength={16}
+            autoComplete="nickname"
           />
         </div>
         <button
           type="button"
-          onClick={onPlay}
-          className="flex min-h-12 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-base font-bold text-zinc-950"
+          onClick={() => void onPlay()}
+          disabled={!canPlay}
+          className="flex min-h-12 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-base font-bold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Play this race
+          {joining ? "Joining…" : "Play this race"}
         </button>
+        {nickHint && (
+          <p className="text-center text-xs text-stone-400">{nickHint}</p>
+        )}
+        {joinError && (
+          <p className="text-center text-xs text-rose-300">{joinError}</p>
+        )}
         <button
           type="button"
           onClick={() => void onCopy()}
@@ -167,7 +288,7 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
         )}
         {!loading && !error && entries.length === 0 && (
           <p className="mt-4 text-sm leading-relaxed text-zinc-400">
-            No scores yet. Play a run — wipeout posts here.
+            No names yet. Type a nick to appear here at 0 — then play.
           </p>
         )}
         <ol className="mt-3 space-y-1.5">
@@ -180,10 +301,6 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
       <p className="relative mt-6 text-center text-[11px] text-zinc-500">
         <Link href={raceOverlayPath(raceId)} className="underline-offset-2 hover:underline">
           OBS overlay
-        </Link>
-        {" · "}
-        <Link href={racePlayPath(raceId)} className="underline-offset-2 hover:underline">
-          Open play
         </Link>
       </p>
     </main>

@@ -11,6 +11,7 @@ import {
   RaceFullError,
   ensureRace,
   getRace,
+  joinRace,
   submitRaceScore,
 } from "@/lib/race-store";
 
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       { status: 400 }
     );
   }
+  // Join (lobby) POSTs score 0 / reps 0 so names appear before wipeouts.
   const score = clampScore(b.score);
   if (score == null) {
     return NextResponse.json({ error: "Invalid score" }, { status: 400 });
@@ -85,13 +87,16 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   const country = detectCountryFromHeaders(req.headers);
 
   try {
-    const race = await submitRaceScore(id, {
-      nick,
-      emoji,
-      score,
-      reps,
-      country,
-    });
+    const race =
+      score === 0 && reps === 0
+        ? await joinRace(id, { nick, emoji, country })
+        : await submitRaceScore(id, {
+            nick,
+            emoji,
+            score,
+            reps,
+            country,
+          });
     return NextResponse.json({ ...race, url: raceUrl(race.id) });
   } catch (e) {
     if (e instanceof RaceFullError) {

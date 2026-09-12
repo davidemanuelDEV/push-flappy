@@ -46,11 +46,13 @@ import {
   xIntentUrl,
   copyToClipboard,
 } from "@/lib/share";
-import { parseRaceFromSearch } from "@/lib/race";
+import { parseRaceFromSearch, racePath } from "@/lib/race";
+import { postRaceJoin } from "@/lib/race-client";
 import type {
   LeaderboardEntry,
   LeaderboardStorage,
 } from "@/lib/leaderboard-store";
+import { sanitizeNick } from "@/lib/leaderboard-store";
 import type { RaceEntry } from "@/lib/race-store";
 import {
   CoachBanner,
@@ -76,6 +78,8 @@ export default function PushFlappyGame() {
   const beatTarget = beatChallenge?.score ?? null;
   const raceId = parseRaceFromSearch(searchParams);
   const raceSeedRef = useRef<string | null>(null);
+  /** Race play requires a real nick already on the board (lobby join). */
+  const [raceAllowed, setRaceAllowed] = useState(!raceId);
   // Deep-link ?board=1 goes to dedicated camera-free /board
   const boardDeepLink = searchParams.get("board") === "1";
   // /stream and /play?obs=1 — OBS Browser Source crop (no marketing chrome)
@@ -155,36 +159,69 @@ export default function PushFlappyGame() {
   }, [beatTarget]);
 
   useEffect(() => {
-    if (!raceId) return;
-    track("race_join", { race: raceId });
+    if (!raceId) {
+      setRaceAllowed(true);
+      return;
+    }
+    let stored = "";
+    let face = "🐦";
+    try {
+      stored = localStorage.getItem(NICK_KEY) ?? "";
+      face = localStorage.getItem(EMOJI_KEY) || "🐦";
+    } catch {
+      /* ignore */
+    }
+    const clean = sanitizeNick(stored);
+    if (!clean) {
+      router.replace(racePath(raceId));
+      return;
+    }
+    setNick(clean);
+    setEmoji(face);
+    setRaceAllowed(true);
+
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(
-          `/api/race/${encodeURIComponent(raceId)}?ensure=1`,
-          { cache: "no-store" }
-        );
-        if (!res.ok) return;
-        const data = (await res.json()) as { seed?: string };
-        if (cancelled || typeof data.seed !== "string") return;
-        raceSeedRef.current = data.seed;
+        const joined = await postRaceJoin(raceId, clean, face);
+        if (cancelled) return;
+        if (joined.seed) raceSeedRef.current = joined.seed;
+        setBoardEntries(asBoardEntries(joined.entries ?? []));
+        setBoardStorage(joined.storage);
         const g = gameRef.current;
-        if (g && g.status === "ready" && g.seed !== data.seed) {
+        if (g && g.status === "ready" && g.seed !== joined.seed) {
           gameRef.current = {
-            ...createInitialState(g.width, g.height, g.highScore, g.dayKey, data.seed),
+            ...createInitialState(g.width, g.height, g.highScore, g.dayKey, joined.seed),
             birdY: g.birdY,
           };
         }
       } catch {
-        /* daily seed fallback */
+        try {
+          const res = await fetch(
+            `/api/race/${encodeURIComponent(raceId)}?ensure=1`,
+            { cache: "no-store" }
+          );
+          if (!res.ok || cancelled) return;
+          const data = (await res.json()) as {
+            seed?: string;
+            entries?: RaceEntry[];
+            storage?: LeaderboardStorage;
+          };
+          if (typeof data.seed === "string") raceSeedRef.current = data.seed;
+          if (data.entries) setBoardEntries(asBoardEntries(data.entries));
+          if (data.storage) setBoardStorage(data.storage);
+        } catch {
+          /* daily seed fallback */
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [raceId]);
+  }, [raceId, router]);
 
   useEffect(() => {
+    if (raceId) return;
     try {
       const n = localStorage.getItem(NICK_KEY);
       const e = localStorage.getItem(EMOJI_KEY);
@@ -193,7 +230,7 @@ export default function PushFlappyGame() {
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [raceId]);
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -252,11 +289,11 @@ export default function PushFlappyGame() {
     router.replace("/board");
   }, [boardDeepLink, router]);
 
-  // Camera: only while board is closed and not on board deep-link redirect
+  // Camera: only while board is closed and not on board / race-nick redirect
   useEffect(() => {
-    if (boardDeepLink || boardOpen) {
+    if (boardDeepLink || boardOpen || !raceAllowed) {
       stopCameraStream();
-      if (boardOpen || boardDeepLink) setCamStatus("idle");
+      setCamStatus("idle");
       return;
     }
     let cancelled = false;
@@ -294,11 +331,11 @@ export default function PushFlappyGame() {
       cancelled = true;
       stopCameraStream();
     };
-  }, [boardOpen, boardDeepLink, stopCameraStream]);
+  }, [boardOpen, boardDeepLink, raceAllowed, stopCameraStream]);
 
   // Pose / MediaPipe: defer until board closed (and not redirecting to /board)
   useEffect(() => {
-    if (boardDeepLink || boardOpen) return;
+    if (boardDeepLink || boardOpen || !raceAllowed) return;
     let cancelled = false;
     async function initPose() {
       if (landmarkerRef.current) {
@@ -345,7 +382,7 @@ export default function PushFlappyGame() {
     return () => {
       cancelled = true;
     };
-  }, [boardOpen, boardDeepLink]);
+  }, [boardOpen, boardDeepLink, raceAllowed]);
 
   // Unmount: always tear down camera + pose
   useEffect(() => {
@@ -782,10 +819,11 @@ export default function PushFlappyGame() {
   };
 
   useEffect(() => {
-    if (!boardOpen || !raceId) return;
+    if (!raceId || !raceAllowed) return;
+    void loadBoard();
     const id = setInterval(() => void loadBoard(), 5_000);
     return () => clearInterval(id);
-  }, [boardOpen, raceId, loadBoard]);
+  }, [raceId, raceAllowed, loadBoard]);
 
   // Legacy ?board=1 is redirected to /board above — do not open overlay or touch camera.
 
@@ -801,9 +839,11 @@ export default function PushFlappyGame() {
       } catch {
         /* ignore */
       }
-      const savedNick = nick.trim() || "Anon";
+      const cleanNick = sanitizeNick(nick);
       const savedEmoji = emoji.trim() || "🐦";
       if (raceId) {
+        if (!cleanNick) throw new Error("Nick must be 2–16 letters/numbers");
+        const savedNick = cleanNick;
         const res = await fetch(`/api/race/${encodeURIComponent(raceId)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -828,6 +868,7 @@ export default function PushFlappyGame() {
         );
         return;
       }
+      const savedNick = cleanNick ?? (nick.trim() || "Anon");
       const res = await fetch("/api/leaderboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -906,6 +947,10 @@ export default function PushFlappyGame() {
     return <PlaySplash label="Opening daily board…" />;
   }
 
+  if (raceId && !raceAllowed) {
+    return <PlaySplash label="Join with a nick…" />;
+  }
+
   return (
     <div
       className={`relative flex h-[100dvh] w-full flex-col overflow-hidden overscroll-none text-white ${
@@ -952,7 +997,7 @@ export default function PushFlappyGame() {
         )}
         {ui.status === "ready" && <CoachBanner coachMessage={coachMessage} calibPhase={calibPhase} holdProgress={holdProgress} />}
         {startReady && countdown == null && !obsMode && (
-          <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} raceId={raceId} onStart={onStart} />
+          <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} raceId={raceId} raceEntries={boardEntries} onStart={onStart} />
         )}
         {countdown != null && countdown > 0 && <CountdownOverlay count={countdown} />}
         {ui.status === "over" && (

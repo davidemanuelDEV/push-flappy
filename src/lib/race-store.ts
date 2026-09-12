@@ -2,6 +2,8 @@
  * Race-scoped score boards.
  * Same persist backends as the daily board (Blob / KV / memory).
  * Latest score per nick. Cap unique nicks. No demo seeds.
+ * Join POSTs score 0 / reps 0 so names land before the first wipeout.
+ * A later 0/0 join must not wipe a score already on the board.
  */
 
 import { normalizeCountry } from "./country";
@@ -256,9 +258,22 @@ export async function submitRaceScore(
     country: normalizeCountry(entry.country),
   };
   const nickKey = full.nick.toLowerCase();
+  const existing = race.entries.find((e) => e.nick.toLowerCase() === nickKey);
   const others = race.entries.filter((e) => e.nick.toLowerCase() !== nickKey);
   if (others.length >= RACE_NICK_CAP) {
     throw new RaceFullError();
+  }
+  // Same nick = same person (update, don't add a row). A join at 0/0
+  // must not clobber a wipeout already posted for that nick.
+  if (
+    existing &&
+    full.score === 0 &&
+    full.reps === 0 &&
+    (existing.score > 0 || existing.reps > 0)
+  ) {
+    full.score = existing.score;
+    full.reps = existing.reps;
+    full.at = existing.at;
   }
   const entries = sortEntries([...others, full]).slice(0, RACE_NICK_CAP);
   const next: RaceRecord = {
@@ -269,4 +284,18 @@ export async function submitRaceScore(
   };
   await writeRaw(next, race.storage);
   return { ...next, storage: race.storage };
+}
+
+/** Put a nick on the board at 0/0 so the live top-10 has names before play. */
+export async function joinRace(
+  id: string,
+  entry: { nick: string; emoji: string; country?: string }
+): Promise<RacePayload> {
+  return submitRaceScore(id, {
+    nick: entry.nick,
+    emoji: entry.emoji,
+    score: 0,
+    reps: 0,
+    country: entry.country ?? "",
+  });
 }

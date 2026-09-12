@@ -57,8 +57,8 @@ export default function RaceCreate() {
           Race friends
         </h1>
         <p className="mx-auto max-w-sm text-[15px] leading-relaxed text-stone-400">
-          One link. Everyone plays the same pipe seed. Wipeouts post to a live
-          top-10. Spectators watch without a camera.
+          One link. Everyone puts a nick on the live top-10 first, then plays
+          the same pipe seed. Spectators watch without a camera.
         </p>
         <button
           type="button"

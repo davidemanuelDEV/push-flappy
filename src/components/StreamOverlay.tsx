@@ -87,7 +87,7 @@ export default function StreamOverlay({ raceId }: { raceId?: string }) {
       )}
       {!loading && !error && rows.length === 0 && (
         <p className="mt-6 text-xl font-semibold text-stone-300">
-          {raceId ? "Waiting for scores" : "Board is empty today"}
+          {raceId ? "Waiting for names" : "Board is empty today"}
         </p>
       )}
 
