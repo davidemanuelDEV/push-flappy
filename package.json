@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/game.test.ts src/lib/race.test.ts"
+    "test": "tsx --test src/lib/game.test.ts src/lib/race.test.ts src/lib/seo.test.ts"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",

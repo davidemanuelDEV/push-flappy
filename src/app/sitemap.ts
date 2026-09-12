@@ -1,45 +1,44 @@
 import type { MetadataRoute } from "next";
-
-const BASE = "https://pushflappy.com";
+import { canonicalUrl } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
   return [
     {
-      url: `${BASE}/`,
+      url: canonicalUrl("/"),
       lastModified,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: `${BASE}/play`,
+      url: canonicalUrl("/play"),
       lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: `${BASE}/board`,
+      url: canonicalUrl("/board"),
       lastModified,
       changeFrequency: "daily",
       priority: 0.8,
     },
     {
-      url: `${BASE}/race`,
+      url: canonicalUrl("/race"),
       lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
-      url: `${BASE}/faq`,
+      url: canonicalUrl("/faq"),
       lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
-      url: `${BASE}/stream`,
+      url: canonicalUrl("/streamers"),
       lastModified,
       changeFrequency: "monthly",
-      priority: 0.4,
+      priority: 0.6,
     },
   ];
 }

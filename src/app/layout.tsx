@@ -3,6 +3,7 @@ import { Fredoka, Geist, Geist_Mono } from "next/font/google";
 import RegisterSW from "@/components/RegisterSW";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { canonicalUrl, ogImageUrl } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,16 +22,18 @@ const display = Fredoka({
   weight: ["500", "600", "700"],
 });
 
-const siteTitle = "Push Flappy: Push-up camera game — Flappy with your body";
+const siteTitle =
+  "Push Flappy: Free browser push-up Flappy — no app";
 const siteDescription =
-  "Push-up camera game — Flappy with your body. Webcam or phone + on-device MediaPipe Pose. No downloads, no accounts. Works on phone over HTTPS.";
+  "Free in the browser — no app. Flappy pipes, your torso is the bird. Share a beat-me link. On-device pose, no accounts. OBS-ready.";
 const siteUrl = "https://pushflappy.com";
-const ogImage = new URL("/api/og", siteUrl).toString();
+const ogImage = ogImageUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: siteTitle,
   description: siteDescription,
+  alternates: { canonical: canonicalUrl("/") },
   applicationName: "Push Flappy",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

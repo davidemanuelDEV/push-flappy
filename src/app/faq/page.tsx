@@ -1,40 +1,17 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/seo";
 
-const SITE = "https://pushflappy.com";
-const ogImage = new URL("/api/og", SITE).toString();
-
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "FAQ — Push Flappy",
   description:
-    "How Push Flappy works: push-ups drive the bird, camera setup, beat-me links, daily board, and on-device privacy.",
-  openGraph: {
-    title: "FAQ — Push Flappy",
-    description:
-      "How Push Flappy works: push-ups drive the bird, camera setup, beat-me links, daily board, and on-device privacy.",
-    url: `${SITE}/faq`,
-    type: "website",
-    siteName: "Push Flappy",
-    images: [
-      {
-        url: ogImage,
-        width: 1200,
-        height: 630,
-        alt: "Push Flappy FAQ",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "FAQ — Push Flappy",
-    description:
-      "How Push Flappy works: push-ups drive the bird, camera setup, beat-me links, daily board, and on-device privacy.",
-    images: [ogImage],
-  },
-};
+    "How Push Flappy works: push-ups drive the bird, camera setup, beat-me links, daily board, races, OBS, and on-device privacy.",
+  path: "/faq",
+  imageAlt: "Push Flappy FAQ",
+});
 
-const FAQS: { q: string; a: string }[] = [
+const FAQS: { q: string; a: string; links?: { href: string; label: string }[] }[] = [
   {
     q: "How does Push Flappy work?",
     a: "Your body is the controller. The game uses your phone or webcam and on-device pose tracking so your torso height maps to the bird’s Y position. Drop into a push-up to dive through copper pipes; press up to rise. Clear gaps to score — no taps required once you are calibrated.",
@@ -50,6 +27,7 @@ const FAQS: { q: string; a: string }[] = [
   {
     q: "What is the daily board?",
     a: "Everyone plays the same pipe seed each day (Pacific time), so scores are comparable. Post an anonymous nick + emoji from the game — no account. Browse today’s board any time at /board without turning the camera on.",
+    links: [{ href: "/board", label: "Today’s board" }],
   },
   {
     q: "Is my camera / pose data private?",
@@ -69,11 +47,16 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Can I put this in OBS?",
-    a: "Yes. Add https://pushflappy.com/stream (or /play?obs=1) as a Browser Source at 1920×1080. That view hides marketing chrome and enlarges the score / beat-me HUD. Allow the camera, hold a plank, and the usual 3-2-1 countdown starts. Viewers dare you by opening the beat-me link on their phone. Optional second source: /overlay for today’s board (no camera). For a live race board use /race/{id}/overlay. See STREAMERS.md.",
+    a: "Yes. Add https://pushflappy.com/stream (or /play?obs=1) as a Browser Source at 1920×1080. That view hides marketing chrome and enlarges the score / beat-me HUD. Allow the camera, hold a plank, and the usual 3-2-1 countdown starts. Viewers dare you by opening the beat-me link on their phone. Optional second source: /overlay for today’s board (no camera). For a live race board use /race/{id}/overlay.",
+    links: [{ href: "/streamers", label: "Streamers / OBS setup" }],
   },
   {
     q: "How do friend races work?",
     a: "Open /race to mint one share link like /race/abc12. Friends tap it and enter a nick (2–16 letters/numbers) — that name lands on the live top-10 at 0 before anyone flies. Play stays off until the nick is on the board. During /play?race= you see the same compact top-10 (names and scores) while flying; scores tick as pipes are cleared, not only on wipeout. Spectators stay on the race page or overlay and watch without a camera. This is async scores, not lockstep multiplayer. Out-of-race wipeouts still use Challenge a friend.",
+    links: [
+      { href: "/race", label: "Start a race" },
+      { href: "/streamers", label: "Race overlay in OBS" },
+    ],
   },
 ];
 
@@ -85,7 +68,11 @@ const faqJsonLd = {
     name: item.q,
     acceptedAnswer: {
       "@type": "Answer",
-      text: item.a,
+      text:
+        item.a +
+        (item.links?.length
+          ? ` ${item.links.map((l) => `https://pushflappy.com${l.href}`).join(" ")}`
+          : ""),
     },
   })),
 };
@@ -127,6 +114,8 @@ export default function FaqPage() {
           <NavChip href="/">Home</NavChip>
           <NavChip href="/play">Play</NavChip>
           <NavChip href="/board">Daily board</NavChip>
+          <NavChip href="/race">Race</NavChip>
+          <NavChip href="/streamers">Streamers / OBS</NavChip>
         </nav>
 
         <section className="space-y-3" aria-label="Frequently asked questions">
@@ -141,6 +130,19 @@ export default function FaqPage() {
               <p className="mt-2 text-sm leading-relaxed text-stone-400">
                 {item.a}
               </p>
+              {item.links && item.links.length > 0 ? (
+                <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                  {item.links.map((link) => (
+                    <Link
+                      key={link.href + link.label}
+                      href={link.href}
+                      className="text-sm font-semibold text-amber-300 underline-offset-2 hover:underline"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </p>
+              ) : null}
             </article>
           ))}
         </section>
@@ -161,7 +163,13 @@ export default function FaqPage() {
               Daily board
             </Link>
             {" · "}
-            Push Flappy
+            <Link href="/race" className="underline-offset-2 hover:underline">
+              Race
+            </Link>
+            {" · "}
+            <Link href="/streamers" className="underline-offset-2 hover:underline">
+              Streamers / OBS
+            </Link>
           </p>
         </footer>
       </div>

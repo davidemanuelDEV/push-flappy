@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import { canonicalUrl, ogImageUrl } from "@/lib/seo";
 import PlayClient from "../play/PlayClient";
-
-const SITE = "https://pushflappy.com";
 
 type StreamSearch = {
   beat?: string | string[];
@@ -29,7 +28,7 @@ export async function generateMetadata({
   const beat = parseNonNegInt(first(sp.beat));
   const reps = parseNonNegInt(first(sp.reps));
 
-  const ogImage = new URL("/api/og", SITE);
+  const ogImage = new URL(ogImageUrl());
   if (beat != null) {
     ogImage.searchParams.set("beat", String(beat));
     if (reps != null && reps > 0) ogImage.searchParams.set("reps", String(reps));
@@ -45,10 +44,12 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: { canonical: canonicalUrl("/stream") },
+    robots: { index: false, follow: true },
     openGraph: {
       title,
       description,
-      url: `${SITE}/stream`,
+      url: canonicalUrl("/stream"),
       type: "website",
       siteName: "Push Flappy",
       images: [

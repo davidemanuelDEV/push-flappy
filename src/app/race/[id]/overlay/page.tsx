@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import StreamOverlay from "@/components/StreamOverlay";
 import { sanitizeRaceId } from "@/lib/race";
-
-const SITE = "https://pushflappy.com";
+import { canonicalUrl } from "@/lib/seo";
 
 type RaceParams = { id: string };
 
@@ -17,13 +16,17 @@ export async function generateMetadata({
   const title = id
     ? `Race overlay ${id.toUpperCase()} — Push Flappy`
     : "Race overlay — Push Flappy";
+  const url = id
+    ? canonicalUrl(`/race/${id}/overlay`)
+    : canonicalUrl("/race");
   return {
     title,
     description: "OBS race board — big ranks, no camera, polls live scores.",
+    alternates: { canonical: url },
     openGraph: {
       title,
       description: "OBS race board — big ranks, no camera.",
-      url: id ? `${SITE}/race/${id}/overlay` : `${SITE}/race`,
+      url,
       type: "website",
       siteName: "Push Flappy",
     },

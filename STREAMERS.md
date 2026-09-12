@@ -1,5 +1,7 @@
 # Stream Push Flappy (OBS)
 
+**Live setup page:** [https://pushflappy.com/streamers](https://pushflappy.com/streamers)
+
 Phase 1 streamer pack — play view + optional board widget. Chat `!beat` bots stay out of scope. Race overlay is a second Browser Source (no Twitch Extension).
 
 ## Browser Source (play)

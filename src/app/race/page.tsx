@@ -2,31 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import RaceCreate from "@/components/RaceCreate";
 import { sanitizeRaceId } from "@/lib/race";
+import { pageMetadata } from "@/lib/seo";
 
-const SITE = "https://pushflappy.com";
-const ogImage = new URL("/api/og", SITE).toString();
-
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Race friends — Push Flappy",
   description:
-    "Mint one link. Friends play the same pipes and a live top-10 updates as wipeouts post. No accounts.",
-  openGraph: {
-    title: "Race friends — Push Flappy",
-    description:
-      "Mint one link. Friends play the same pipes and a live top-10 updates as wipeouts post. No accounts.",
-    url: `${SITE}/race`,
-    type: "website",
-    siteName: "Push Flappy",
-    images: [{ url: ogImage, width: 1200, height: 630, alt: "Push Flappy race" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Race friends — Push Flappy",
-    description:
-      "Mint one link. Friends play the same pipes and a live top-10 updates as wipeouts post.",
-    images: [ogImage],
-  },
-};
+    "Mint one link. Friends play the same pipes and a live top-10 updates as scores tick. No accounts. Spectate without a camera.",
+  path: "/race",
+  imageAlt: "Push Flappy race",
+});
 
 type RaceSearch = { code?: string | string[] };
 

@@ -136,7 +136,7 @@ Phone browsers require **HTTPS** (or localhost) for `getUserMedia`. Deploy to Ve
 
 ## Streamers (OBS)
 
-OBS pack (Phase 1). Full setup: [STREAMERS.md](./STREAMERS.md).
+OBS pack (Phase 1). Live setup: [https://pushflappy.com/streamers](https://pushflappy.com/streamers). Repo notes: [STREAMERS.md](./STREAMERS.md).
 
 - **Play Browser Source:** [https://pushflappy.com/stream](https://pushflappy.com/stream) (same as `/play?obs=1`)
 - **Recommended size:** 1920×1080
@@ -153,7 +153,8 @@ Do not add paid Twitch Extensions or a `!beat` bot here.
 |------|-------------|
 | `/` | Marketing / how-to-play + Start CTA |
 | `/play` | Fullscreen camera game (`?beat=N` challenge; `?obs=1` capture chrome) |
-| `/stream` | OBS play view (same game, no marketing chrome, larger HUD) |
+| `/stream` | OBS play view (same game, no marketing chrome, larger HUD) — noindex |
+| `/streamers` | Human/SEO OBS setup (Browser Source, cam, plank, overlays) |
 | `/overlay` | Read-only daily board widget for a second Browser Source |
 | `/race` | Mint a race link |
 | `/race/[id]` | Join + live top-10 (camera-free spectate). `?obs=1` = overlay |

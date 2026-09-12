@@ -21,7 +21,7 @@ export default function HomePage() {
               applicationCategory: "GameApplication",
               operatingSystem: "Web",
               description:
-                "Push-up camera game — control a bird with your body using on-device pose tracking. No downloads, no accounts.",
+                "Free browser push-up Flappy — no app. Your torso is the bird through copper pipes. Share beat-me links. On-device pose, no accounts.",
               offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
             },
             {
@@ -77,8 +77,15 @@ export default function HomePage() {
             Flappy Bird you play with push-ups.
           </p>
           <p className="mx-auto max-w-md text-[15px] leading-relaxed text-stone-400">
-            Your torso height is the bird. Drop to dive through copper pipes —
-            press up to rise. On-device pose. No accounts.
+            Free in the browser — no app. Your torso is the bird through copper
+            pipes. Share a beat-me link after a run.{" "}
+            <Link
+              href="/streamers"
+              className="font-semibold text-amber-200/90 underline-offset-2 hover:underline"
+            >
+              Streamers drop it in OBS
+            </Link>
+            .
           </p>
         </header>
 
@@ -115,7 +122,7 @@ export default function HomePage() {
           >
             Start playing
           </Link>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             <Link
               href="/board"
               className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
@@ -133,6 +140,12 @@ export default function HomePage() {
               className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
             >
               FAQ
+            </Link>
+            <Link
+              href="/streamers"
+              className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
+            >
+              Streamers / OBS
             </Link>
             <a
               href="#challenge"
@@ -206,6 +219,26 @@ export default function HomePage() {
           <ReminderCapture source="landing" />
         </section>
 
+        <section className="space-y-3" aria-labelledby="faq-tease">
+          <h2
+            id="faq-tease"
+            className="text-center text-xs font-bold uppercase tracking-[0.2em] text-amber-500/80"
+          >
+            Quick FAQ
+          </h2>
+          <ul className="grid gap-2.5">
+            <FaqTeaser href="/faq" q="Need an app or account?">
+              No — free in the browser, no login. Pose stays on your device.
+            </FaqTeaser>
+            <FaqTeaser href="/streamers" q="Can I put this in OBS?">
+              Yes. Browser Source at 1920×1080. Viewers send beat-me links.
+            </FaqTeaser>
+            <FaqTeaser href="/race" q="How do friend races work?">
+              Mint one link. Same pipes, live top-10. Spectate without a camera.
+            </FaqTeaser>
+          </ul>
+        </section>
+
         <IosInstallTip />
 
         <footer className="mt-auto space-y-3 pb-2 pt-4 text-center">
@@ -228,6 +261,10 @@ export default function HomePage() {
               Race
             </Link>
             {" · "}
+            <Link href="/streamers" className="underline-offset-2 hover:underline">
+              Streamers / OBS
+            </Link>
+            {" · "}
             <Link href="/play" className="underline-offset-2 hover:underline">
               Play
             </Link>
@@ -248,6 +285,29 @@ export default function HomePage() {
         </footer>
       </div>
     </main>
+  );
+}
+
+function FaqTeaser({
+  href,
+  q,
+  children,
+}: {
+  href: string;
+  q: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="rounded-2xl border border-amber-950/60 bg-stone-900/55 px-4 py-3.5">
+      <p className="text-[15px] font-semibold text-amber-50">{q}</p>
+      <p className="mt-1 text-sm leading-relaxed text-stone-400">{children}</p>
+      <Link
+        href={href}
+        className="mt-2 inline-block text-sm font-semibold text-amber-300 underline-offset-2 hover:underline"
+      >
+        More →
+      </Link>
+    </li>
   );
 }
 
