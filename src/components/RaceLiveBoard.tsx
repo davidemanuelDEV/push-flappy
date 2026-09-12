@@ -40,7 +40,9 @@ export default function RaceLiveBoard({
               <li
                 key={`${e.nick}-${i}`}
                 className={`flex items-center gap-1 rounded-md px-1 py-0.5 ${
-                  mine ? "bg-amber-500/20 ring-1 ring-amber-400/50" : ""
+                  mine
+                    ? "bg-amber-400/35 ring-1 ring-amber-200/70"
+                    : ""
                 }`}
               >
                 <span className="w-3.5 shrink-0 text-[10px] font-bold tabular-nums text-zinc-500">
