@@ -30,7 +30,8 @@ type RouteCtx = { params: Promise<{ id: string }> };
 
 export async function GET(req: NextRequest, ctx: RouteCtx) {
   const ip = clientId(req);
-  if (!allowRequest(`race-get:${ip}`, 60, 60_000)) {
+  // ~1s polls from play + lobby + overlay; a few clients may share an IP.
+  if (!allowRequest(`race-get:${ip}`, 240, 60_000)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const { id: raw } = await ctx.params;
@@ -51,7 +52,8 @@ export async function GET(req: NextRequest, ctx: RouteCtx) {
 
 export async function POST(req: NextRequest, ctx: RouteCtx) {
   const ip = clientId(req);
-  if (!allowRequest(`race-post:${ip}`, 12, 60_000)) {
+  // Mid-run progress (~1s) plus wipeout; two phones on one NAT.
+  if (!allowRequest(`race-post:${ip}`, 90, 60_000)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const { id: raw } = await ctx.params;

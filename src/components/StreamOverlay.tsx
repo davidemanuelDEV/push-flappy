@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { laDayKey } from "@/lib/daily";
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
-import { RACE_NICK_CAP } from "@/lib/race";
+import { RACE_NICK_CAP, RACE_POLL_MS } from "@/lib/race";
 
-const POLL_MS = 8_000;
+const DAILY_POLL_MS = 8_000;
 const DAILY_MAX_ROWS = 8;
 
 type OverlayRow = Pick<LeaderboardEntry, "nick" | "emoji" | "score" | "at" | "country">;
@@ -63,9 +63,9 @@ export default function StreamOverlay({ raceId }: { raceId?: string }) {
 
   useEffect(() => {
     void load();
-    const id = setInterval(() => void load(), POLL_MS);
+    const id = setInterval(() => void load(), raceId ? RACE_POLL_MS : DAILY_POLL_MS);
     return () => clearInterval(id);
-  }, [load]);
+  }, [load, raceId]);
 
   const maxRows = raceId ? RACE_NICK_CAP : DAILY_MAX_ROWS;
   const rows = entries.slice(0, maxRows);

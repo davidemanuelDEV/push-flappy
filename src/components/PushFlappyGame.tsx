@@ -46,8 +46,15 @@ import {
   xIntentUrl,
   copyToClipboard,
 } from "@/lib/share";
-import { parseRaceFromSearch, racePath } from "@/lib/race";
-import { postRaceJoin } from "@/lib/race-client";
+import {
+  parseRaceFromSearch,
+  racePath,
+  RACE_POLL_MS,
+  RACE_PROGRESS_MIN_MS,
+  withLocalRaceScore,
+} from "@/lib/race";
+import { fetchRace, postRaceJoin, postRaceScore } from "@/lib/race-client";
+import RaceLiveBoard from "@/components/RaceLiveBoard";
 import type {
   LeaderboardEntry,
   LeaderboardStorage,
@@ -145,6 +152,13 @@ export default function PushFlappyGame() {
   const scorePostedRef = useRef(false);
   const submittingRef = useRef(false);
   const autoPostedRef = useRef(false);
+  const progressBusyRef = useRef(false);
+  const pendingProgressRef = useRef<{ score: number; reps: number } | null>(
+    null
+  );
+  const lastProgressAtRef = useRef(0);
+  const lastPostedProgressRef = useRef({ score: 0, reps: 0 });
+  const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     beatTargetRef.current = beatTarget;
@@ -570,6 +584,8 @@ export default function PushFlappyGame() {
     autoPostedRef.current = false;
     scorePostedRef.current = false;
     submittingRef.current = false;
+    pendingProgressRef.current = null;
+    lastPostedProgressRef.current = { score: 0, reps: 0 };
     setScorePosted(false);
     setSubmitMsg(null);
     setSubmitting(false);
@@ -638,6 +654,8 @@ export default function PushFlappyGame() {
     autoPostedRef.current = false;
     scorePostedRef.current = false;
     submittingRef.current = false;
+    pendingProgressRef.current = null;
+    lastPostedProgressRef.current = { score: 0, reps: 0 };
     setScorePosted(false);
     setSubmitMsg(null);
     setSubmitting(false);
@@ -820,10 +838,90 @@ export default function PushFlappyGame() {
 
   useEffect(() => {
     if (!raceId || !raceAllowed) return;
-    void loadBoard();
-    const id = setInterval(() => void loadBoard(), 5_000);
-    return () => clearInterval(id);
-  }, [raceId, raceAllowed, loadBoard]);
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const data = await fetchRace(raceId);
+        if (cancelled) return;
+        setBoardEntries(asBoardEntries(data.entries ?? []));
+        setBoardStorage(data.storage);
+        setBoardDay(raceId);
+      } catch {
+        /* keep last snapshot */
+      }
+    };
+    void tick();
+    const id = setInterval(() => void tick(), RACE_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [raceId, raceAllowed]);
+
+  const flushRaceProgress = useCallback(async () => {
+    if (!raceId) return;
+    const clean = sanitizeNick(nick);
+    if (!clean) return;
+    if (progressBusyRef.current) return;
+    const pending = pendingProgressRef.current;
+    if (!pending) return;
+    if (pending.score === 0 && pending.reps === 0) return;
+    if (
+      pending.score === lastPostedProgressRef.current.score &&
+      pending.reps === lastPostedProgressRef.current.reps
+    ) {
+      pendingProgressRef.current = null;
+      return;
+    }
+    const wait = RACE_PROGRESS_MIN_MS - (Date.now() - lastProgressAtRef.current);
+    if (wait > 0) {
+      if (progressTimerRef.current != null) {
+        clearTimeout(progressTimerRef.current);
+      }
+      progressTimerRef.current = setTimeout(() => {
+        progressTimerRef.current = null;
+        void flushRaceProgress();
+      }, wait);
+      return;
+    }
+    progressBusyRef.current = true;
+    pendingProgressRef.current = null;
+    try {
+      const data = await postRaceScore(
+        raceId,
+        clean,
+        emoji.trim() || "🐦",
+        pending.score,
+        pending.reps
+      );
+      lastProgressAtRef.current = Date.now();
+      lastPostedProgressRef.current = {
+        score: pending.score,
+        reps: pending.reps,
+      };
+      setBoardEntries(asBoardEntries(data.entries ?? []));
+      setBoardStorage(data.storage);
+    } catch {
+      pendingProgressRef.current = pending;
+    } finally {
+      progressBusyRef.current = false;
+      if (pendingProgressRef.current) void flushRaceProgress();
+    }
+  }, [emoji, nick, raceId]);
+
+  useEffect(() => {
+    if (!raceId || ui.status !== "playing") return;
+    pendingProgressRef.current = { score: ui.score, reps: ui.reps };
+    void flushRaceProgress();
+  }, [flushRaceProgress, raceId, ui.reps, ui.score, ui.status]);
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current != null) {
+        clearTimeout(progressTimerRef.current);
+      }
+    };
+  }, []);
 
   // Legacy ?board=1 is redirected to /board above — do not open overlay or touch camera.
 
@@ -844,18 +942,15 @@ export default function PushFlappyGame() {
       if (raceId) {
         if (!cleanNick) throw new Error("Nick must be 2–16 letters/numbers");
         const savedNick = cleanNick;
-        const res = await fetch(`/api/race/${encodeURIComponent(raceId)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            nick: savedNick,
-            emoji: savedEmoji,
-            score: ui.score,
-            reps: ui.reps,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || `Submit failed (${res.status})`);
+        const data = await postRaceScore(
+          raceId,
+          savedNick,
+          savedEmoji,
+          ui.score,
+          ui.reps
+        );
+        lastPostedProgressRef.current = { score: ui.score, reps: ui.reps };
+        lastProgressAtRef.current = Date.now();
         setBoardEntries(asBoardEntries(data.entries ?? []));
         setBoardStorage(data.storage);
         track("race_score", { race: raceId, score: ui.score, reps: ui.reps, storage: data.storage });
@@ -997,7 +1092,31 @@ export default function PushFlappyGame() {
         )}
         {ui.status === "ready" && <CoachBanner coachMessage={coachMessage} calibPhase={calibPhase} holdProgress={holdProgress} />}
         {startReady && countdown == null && !obsMode && (
-          <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} raceId={raceId} raceEntries={boardEntries} onStart={onStart} />
+          <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} raceId={raceId} onStart={onStart} />
+        )}
+        {raceId && (ui.status === "ready" || ui.status === "playing") && (
+          <div
+            className={`absolute z-20 pointer-events-none ${
+              obsMode
+                ? "left-3 top-3"
+                : "left-3 top-[max(3.55rem,calc(env(safe-area-inset-top)+3.05rem))]"
+            }`}
+          >
+            <RaceLiveBoard
+              entries={withLocalRaceScore(
+                boardEntries,
+                ui.status === "playing"
+                  ? {
+                      nick,
+                      emoji,
+                      score: ui.score,
+                      reps: ui.reps,
+                    }
+                  : null
+              )}
+              youNick={nick}
+            />
+          </div>
         )}
         {countdown != null && countdown > 0 && <CountdownOverlay count={countdown} />}
         {ui.status === "over" && (

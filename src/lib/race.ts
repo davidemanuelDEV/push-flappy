@@ -8,6 +8,12 @@ import { SITE_ORIGIN } from "./share";
 /** Max unique nicks persisted on a race board. */
 export const RACE_NICK_CAP = 10;
 
+/** How often play / lobby / overlay refresh the live top-10. */
+export const RACE_POLL_MS = 1_000;
+
+/** Min gap between mid-run score POSTs (pipes are ~2.5s; wipeout is extra). */
+export const RACE_PROGRESS_MIN_MS = 1_000;
+
 /** Short codes for share links — skip 0/O/1/l lookalikes. */
 const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
 
@@ -72,4 +78,45 @@ export function parseRaceFromSearch(
       ? new URLSearchParams(search.startsWith("?") ? search.slice(1) : search)
       : search;
   return sanitizeRaceId(params.get("race"));
+}
+
+/** Row shape shared by play HUD, lobby, and overlay. */
+export type RaceBoardRow = {
+  nick: string;
+  emoji: string;
+  score: number;
+  reps: number;
+};
+
+/**
+ * Overlay the local player's live score so the in-play board ticks
+ * before the POST/poll round-trip. Same nick updates in place; cap 10.
+ */
+export function withLocalRaceScore(
+  entries: RaceBoardRow[],
+  local: RaceBoardRow | null
+): RaceBoardRow[] {
+  if (!local?.nick.trim()) {
+    return [...entries]
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.reps - a.reps;
+      })
+      .slice(0, RACE_NICK_CAP);
+  }
+  const nickKey = local.nick.toLowerCase();
+  const others = entries.filter((e) => e.nick.toLowerCase() !== nickKey);
+  const existing = entries.find((e) => e.nick.toLowerCase() === nickKey);
+  const mine: RaceBoardRow = {
+    nick: existing?.nick ?? local.nick,
+    emoji: local.emoji || existing?.emoji || "🐦",
+    score: local.score,
+    reps: local.reps,
+  };
+  return [...others, mine]
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.reps - a.reps;
+    })
+    .slice(0, RACE_NICK_CAP);
 }
