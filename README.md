@@ -40,7 +40,7 @@ npm run build && npm start
 ### Race (async lobby)
 - `/race` mints a short id and copies `https://pushflappy.com/race/{id}`.
 - `/race/[id]` is the dare-first page: a real nick (2–16 letters/numbers) is required. Join POSTs that nick at score 0 / reps 0 so the live top-10 has names before anyone flies. Play (`/play?race={id}`) stays off until join succeeds. Spectators need no camera.
-- Same pipe seed for everyone in that race. Wipeout auto-posts latest score per nick (cap 10; same nick updates, no second row). Not frame-sync.
+- Same pipe seed for everyone in that race. `/play?race=` shows a compact live top-10 during ready and play (your row highlighted). Scores POST as you clear pipes (~1s) and on wipeout — latest per nick, cap 10, same nick updates in place. Spectators on `/race/{id}` and `/overlay` poll the same board (~1s). Not frame-sync.
 - OBS: `/race/[id]/overlay` or `/race/[id]?obs=1` — big ranks, no camera.
 - Persistence: same Blob / KV / memory backends as the daily board (`push-flappy/race/{id}.json`).
 

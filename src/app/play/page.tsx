@@ -37,7 +37,7 @@ export async function generateMetadata({
   if (race) {
     const title = `Race ${race.toUpperCase()} — Push Flappy`;
     const description =
-      "Same pipes as this race. Wipeout posts to the live top-10. Camera to play; spectate on the race link.";
+      "Same pipes as this race. Live top-10 updates while you fly. Camera to play; spectate on the race link.";
     const playUrl = new URL("/play", SITE);
     playUrl.searchParams.set("race", race);
     return {

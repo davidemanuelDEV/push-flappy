@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import { sanitizeNick } from "@/lib/leaderboard-store";
-import { RACE_NICK_CAP, raceOverlayPath, racePlayPath, raceUrl } from "@/lib/race";
+import { RACE_NICK_CAP, RACE_POLL_MS, raceOverlayPath, racePlayPath, raceUrl } from "@/lib/race";
 import { postRaceJoin } from "@/lib/race-client";
 import type { RaceEntry, RacePayload } from "@/lib/race-store";
 import { copyToClipboard } from "@/lib/share";
 
-const POLL_MS = 5_000;
 const NICK_KEY = "push-flappy-nick";
 const EMOJI_KEY = "push-flappy-emoji";
 
@@ -65,7 +64,7 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
 
   useEffect(() => {
     void load();
-    const id = setInterval(() => void load(), POLL_MS);
+    const id = setInterval(() => void load(), RACE_POLL_MS);
     return () => clearInterval(id);
   }, [load]);
 
@@ -276,7 +275,7 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-bold text-amber-50">Live top-10</h2>
           <p className="text-[11px] text-zinc-500">
-            {race?.storage && race.storage !== "memory" ? "live" : "polls ~5s"}
+            {race?.storage && race.storage !== "memory" ? "live" : "polls ~1s"}
             {entries.length > 0 ? ` · ${entries.length}/${RACE_NICK_CAP}` : ""}
           </p>
         </div>
@@ -293,7 +292,12 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
         )}
         <ol className="mt-3 space-y-1.5">
           {entries.map((e, i) => (
-            <RaceRow key={`${e.nick}-${e.at}`} entry={e} rank={i + 1} />
+            <RaceRow
+              key={`${e.nick}-${e.at}`}
+              entry={e}
+              rank={i + 1}
+              mine={Boolean(joinedNick && e.nick.toLowerCase() === joinedNick.toLowerCase())}
+            />
           ))}
         </ol>
       </section>
@@ -307,9 +311,23 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
   );
 }
 
-function RaceRow({ entry, rank }: { entry: RaceEntry; rank: number }) {
+function RaceRow({
+  entry,
+  rank,
+  mine,
+}: {
+  entry: RaceEntry;
+  rank: number;
+  mine?: boolean;
+}) {
   return (
-    <li className="flex items-center gap-2 rounded-xl bg-stone-900/80 px-3 py-2">
+    <li
+      className={`flex items-center gap-2 rounded-xl px-3 py-2 ${
+        mine
+          ? "bg-amber-500/20 ring-1 ring-amber-400/45"
+          : "bg-stone-900/80"
+      }`}
+    >
       <span className="w-6 text-xs font-bold text-zinc-500">{rank}</span>
       <span className="text-lg" aria-hidden>
         {entry.emoji || "🐦"}
