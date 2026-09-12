@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canonicalUrl } from "./seo";
+import { canonicalUrl, guideOgUrl } from "./seo";
 
 test("canonicalUrl is origin + path with no query", () => {
   assert.equal(canonicalUrl("/"), "https://pushflappy.com/");
@@ -19,4 +19,12 @@ test("canonicalUrl is origin + path with no query", () => {
     "https://pushflappy.com/race/abc12/overlay",
   );
   assert.equal(canonicalUrl("/streamers"), "https://pushflappy.com/streamers");
+  assert.equal(
+    canonicalUrl("/guides/webcam-push-up-game?utm=x"),
+    "https://pushflappy.com/guides/webcam-push-up-game",
+  );
+  assert.equal(
+    guideOgUrl("obs"),
+    "https://pushflappy.com/api/og?guide=obs",
+  );
 });

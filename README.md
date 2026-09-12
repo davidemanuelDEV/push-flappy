@@ -164,3 +164,7 @@ Do not add paid Twitch Extensions or a `!beat` bot here.
 | `/api/race/[id]` | `GET` board; `POST` score (`0`/`0` = join, names before play) |
 | `/api/reminders` | Email reminder capture POST |
 | `/board` | Camera-free daily board + reminder opt-in |
+| `/guides/webcam-push-up-game` | How-to: torso→bird, on-device pose |
+| `/guides/obs-push-up-overlay` | OBS Browser Source + overlays |
+| `/guides/async-fitness-race` | Nick-first async race explainer |
+| `/guides/squat-flappy` | Sibling game (squatflappy.com) |

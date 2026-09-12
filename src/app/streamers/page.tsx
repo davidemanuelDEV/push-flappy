@@ -111,7 +111,14 @@ export default function StreamersPage() {
             <p className="mt-3 text-sm leading-relaxed text-stone-400">
               <code className="text-amber-100/80">/stream</code> hides Home /
               Board / Squat promo / FAQ chrome. Score and beat-me HUD render
-              larger for capture.
+              larger for capture. Longer write-up:{" "}
+              <Link
+                href="/guides/obs-push-up-overlay"
+                className="font-semibold text-amber-200/90 underline-offset-2 hover:underline"
+              >
+                OBS overlay guide
+              </Link>
+              .
             </p>
           </article>
         </section>

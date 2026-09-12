@@ -40,5 +40,29 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    {
+      url: canonicalUrl("/guides/webcam-push-up-game"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: canonicalUrl("/guides/obs-push-up-overlay"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.65,
+    },
+    {
+      url: canonicalUrl("/guides/async-fitness-race"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.65,
+    },
+    {
+      url: canonicalUrl("/guides/squat-flappy"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ];
 }

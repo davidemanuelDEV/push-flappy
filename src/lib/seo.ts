@@ -19,21 +19,29 @@ export function canonicalUrl(path = "/"): string {
   return `${SITE_URL}${pathname}`;
 }
 
+export function guideOgUrl(slug: string): string {
+  const url = new URL(OG_IMAGE_PATH, SITE_URL);
+  url.searchParams.set("guide", slug);
+  return url.toString();
+}
+
 export function pageMetadata({
   title,
   description,
   path,
   index = true,
   imageAlt,
+  imageUrl,
 }: {
   title: string;
   description: string;
   path: string;
   index?: boolean;
   imageAlt?: string;
+  imageUrl?: string;
 }): Metadata {
   const canonical = canonicalUrl(path);
-  const image = ogImageUrl();
+  const image = imageUrl ?? ogImageUrl();
   return {
     title,
     description,

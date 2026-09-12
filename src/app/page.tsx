@@ -268,6 +268,13 @@ export default function HomePage() {
             <Link href="/play" className="underline-offset-2 hover:underline">
               Play
             </Link>
+            {" · "}
+            <Link
+              href="/guides/webcam-push-up-game"
+              className="underline-offset-2 hover:underline"
+            >
+              Guides
+            </Link>
           </p>
           <p className="text-[13px] text-stone-400">
             <a

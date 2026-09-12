@@ -15,6 +15,7 @@ const FAQS: { q: string; a: string; links?: { href: string; label: string }[] }[
   {
     q: "How does Push Flappy work?",
     a: "Your body is the controller. The game uses your phone or webcam and on-device pose tracking so your torso height maps to the bird’s Y position. Drop into a push-up to dive through copper pipes; press up to rise. Clear gaps to score — no taps required once you are calibrated.",
+    links: [{ href: "/guides/webcam-push-up-game", label: "Webcam how-to" }],
   },
   {
     q: "What camera setup do I need?",
@@ -48,13 +49,17 @@ const FAQS: { q: string; a: string; links?: { href: string; label: string }[] }[
   {
     q: "Can I put this in OBS?",
     a: "Yes. Add https://pushflappy.com/stream (or /play?obs=1) as a Browser Source at 1920×1080. That view hides marketing chrome and enlarges the score / beat-me HUD. Allow the camera, hold a plank, and the usual 3-2-1 countdown starts. Viewers dare you by opening the beat-me link on their phone. Optional second source: /overlay for today’s board (no camera). For a live race board use /race/{id}/overlay.",
-    links: [{ href: "/streamers", label: "Streamers / OBS setup" }],
+    links: [
+      { href: "/streamers", label: "Streamers / OBS setup" },
+      { href: "/guides/obs-push-up-overlay", label: "OBS overlay guide" },
+    ],
   },
   {
     q: "How do friend races work?",
     a: "Open /race to mint one share link like /race/abc12. Friends tap it and enter a nick (2–16 letters/numbers) — that name lands on the live top-10 at 0 before anyone flies. Play stays off until the nick is on the board. During /play?race= you see the same compact top-10 (names and scores) while flying; scores tick as pipes are cleared, not only on wipeout. Spectators stay on the race page or overlay and watch without a camera. This is async scores, not lockstep multiplayer. Out-of-race wipeouts still use Challenge a friend.",
     links: [
       { href: "/race", label: "Start a race" },
+      { href: "/guides/async-fitness-race", label: "Async race guide" },
       { href: "/streamers", label: "Race overlay in OBS" },
     ],
   },
