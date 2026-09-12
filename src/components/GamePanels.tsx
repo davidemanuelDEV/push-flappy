@@ -84,18 +84,25 @@ export function ReadyPanel({
   hasPose,
   calibSet,
   beatTarget,
+  raceId,
   onStart,
 }: {
   canStart: boolean;
   hasPose: boolean;
   calibSet: boolean;
   beatTarget?: number | null;
+  raceId?: string | null;
   onStart: () => void;
 }) {
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 pointer-events-none">
       <div className="pointer-events-auto w-full max-w-sm rounded-2xl border border-amber-900/40 bg-stone-950/92 p-4 text-center shadow-xl backdrop-blur-md sm:p-5">
         <h2 className="text-lg font-bold sm:text-xl">Ready?</h2>
+        {raceId && (
+          <p className="mt-1 rounded-xl bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-200">
+            Race {raceId.toUpperCase()} · same pipes
+          </p>
+        )}
         {beatTarget != null && beatTarget >= 0 && (
           <p className="mt-1 rounded-xl bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-200">
             Challenge: beat {beatTarget}
@@ -103,8 +110,10 @@ export function ReadyPanel({
         )}
         <p className="mt-1.5 text-xs leading-relaxed text-zinc-300 sm:text-sm">
           Hold a plank to set bird “up” near the top. Drop to dive through
-          copper pipes — continuous body-Y, no flap. Same daily pipe seed for
-          everyone (PT).
+          copper pipes — continuous body-Y, no flap.{" "}
+          {raceId
+            ? "This race shares one pipe seed. Wipeout posts to the live board."
+            : "Same daily pipe seed for everyone (PT)."}
         </p>
         <button
           type="button"
@@ -195,6 +204,7 @@ export function GameOverPanel({
   shareStatus,
   scorePosted = false,
   scorePosting = false,
+  raceId,
   onRestart,
   onSharePrimary,
   onShareWhatsApp,
@@ -214,6 +224,7 @@ export function GameOverPanel({
   shareStatus?: string | null;
   scorePosted?: boolean;
   scorePosting?: boolean;
+  raceId?: string | null;
   onRestart: () => void;
   onSharePrimary: () => void;
   onShareWhatsApp: () => void;
@@ -224,7 +235,11 @@ export function GameOverPanel({
   onOpenBoard: () => void;
   onSubmitScore: () => void;
 }) {
-  const primaryLabel = beatVictory ? "Your move" : "Challenge a friend";
+  const primaryLabel = raceId
+    ? "Challenge chat"
+    : beatVictory
+      ? "Your move"
+      : "Challenge a friend";
   const siblingSurface = beatVictory ? "victory" : "wipeout";
 
   return (
@@ -286,7 +301,7 @@ export function GameOverPanel({
           onClick={onOpenBoard}
           className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl bg-stone-700 px-4 py-3 font-semibold"
         >
-          View daily board
+          {raceId ? "View race board" : "View daily board"}
         </button>
         <div className="mt-4">
           <p className="mb-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -315,7 +330,7 @@ export function GameOverPanel({
             </ShareActionButton>
             <ShareActionButton
               label="Copy"
-              title="Copy beat-me link"
+              title={raceId ? "Copy race link" : "Copy beat-me link"}
               onClick={onCopyLink}
               className="bg-stone-700 text-white"
             >
@@ -370,6 +385,8 @@ export function LeaderboardPanel({
   variant = "overlay",
   allowSubmit = true,
   playHref = "/play",
+  title = "Daily board",
+  subtitle,
 }: {
   open: boolean;
   dayKey: string;
@@ -393,6 +410,8 @@ export function LeaderboardPanel({
   variant?: "overlay" | "page";
   allowSubmit?: boolean;
   playHref?: string;
+  title?: string;
+  subtitle?: string;
 }) {
   if (!open) return null;
 
@@ -411,14 +430,16 @@ export function LeaderboardPanel({
     >
       <div className="flex items-center justify-between border-b border-amber-950/80 px-4 py-3">
         <div>
-          <p className="text-sm font-bold">Daily board</p>
+          <p className="text-sm font-bold">{title}</p>
           <p className="text-[11px] text-zinc-400">
-            {dayKey} · PT seed ·{" "}
-            {storage && storage !== "memory"
-              ? "live"
-              : storage === "memory"
-                ? "memory (not durable)"
-                : "…"}
+            {subtitle ??
+              `${dayKey} · PT seed · ${
+                storage && storage !== "memory"
+                  ? "live"
+                  : storage === "memory"
+                    ? "memory (not durable)"
+                    : "…"
+              }`}
           </p>
         </div>
         {isPage ? (

@@ -46,10 +46,12 @@ import {
   xIntentUrl,
   copyToClipboard,
 } from "@/lib/share";
+import { parseRaceFromSearch } from "@/lib/race";
 import type {
   LeaderboardEntry,
   LeaderboardStorage,
 } from "@/lib/leaderboard-store";
+import type { RaceEntry } from "@/lib/race-store";
 import {
   CoachBanner,
   CountdownOverlay,
@@ -72,6 +74,8 @@ export default function PushFlappyGame() {
   const router = useRouter();
   const beatChallenge = parseBeatFromSearch(searchParams);
   const beatTarget = beatChallenge?.score ?? null;
+  const raceId = parseRaceFromSearch(searchParams);
+  const raceSeedRef = useRef<string | null>(null);
   // Deep-link ?board=1 goes to dedicated camera-free /board
   const boardDeepLink = searchParams.get("board") === "1";
   // /stream and /play?obs=1 — OBS Browser Source crop (no marketing chrome)
@@ -151,6 +155,36 @@ export default function PushFlappyGame() {
   }, [beatTarget]);
 
   useEffect(() => {
+    if (!raceId) return;
+    track("race_join", { race: raceId });
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/race/${encodeURIComponent(raceId)}?ensure=1`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { seed?: string };
+        if (cancelled || typeof data.seed !== "string") return;
+        raceSeedRef.current = data.seed;
+        const g = gameRef.current;
+        if (g && g.status === "ready" && g.seed !== data.seed) {
+          gameRef.current = {
+            ...createInitialState(g.width, g.height, g.highScore, g.dayKey, data.seed),
+            birdY: g.birdY,
+          };
+        }
+      } catch {
+        /* daily seed fallback */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [raceId]);
+
+  useEffect(() => {
     try {
       const n = localStorage.getItem(NICK_KEY);
       const e = localStorage.getItem(EMOJI_KEY);
@@ -178,7 +212,13 @@ export default function PushFlappyGame() {
     const hs = gameRef.current?.highScore ?? loadHighScore();
     const day = laDayKey();
     if (!gameRef.current || gameRef.current.status === "ready") {
-      gameRef.current = createInitialState(w, h, hs, day);
+      gameRef.current = createInitialState(
+        w,
+        h,
+        hs,
+        day,
+        raceSeedRef.current ?? undefined
+      );
     } else {
       gameRef.current = { ...gameRef.current, width: w, height: h };
     }
@@ -372,7 +412,13 @@ export default function PushFlappyGame() {
       const cssW = canvas.clientWidth;
       const cssH = canvas.clientHeight;
       if (!gameRef.current) {
-        gameRef.current = createInitialState(cssW, cssH, loadHighScore(), laDayKey());
+        gameRef.current = createInitialState(
+          cssW,
+          cssH,
+          loadHighScore(),
+          laDayKey(),
+          raceSeedRef.current ?? undefined
+        );
       }
       let state = gameRef.current;
       if (state.width !== cssW || state.height !== cssH) {
@@ -492,7 +538,13 @@ export default function PushFlappyGame() {
     setSubmitting(false);
     const day = laDayKey();
     gameRef.current = startGame({
-      ...createInitialState(g.width, g.height, loadHighScore(), day),
+      ...createInitialState(
+        g.width,
+        g.height,
+        loadHighScore(),
+        day,
+        raceSeedRef.current ?? undefined
+      ),
       birdY: g.birdY,
     });
     setUi((u) => ({
@@ -505,8 +557,9 @@ export default function PushFlappyGame() {
     track("play_start", {
       ...(beatTarget != null ? { beat: beatTarget } : {}),
       ...(obsMode ? { obs: 1 } : {}),
+      ...(raceId ? { race: raceId } : {}),
     });
-  }, [beatTarget, obsMode]);
+  }, [beatTarget, obsMode, raceId]);
 
   const onStart = () => {
     if (!gameRef.current) return;
@@ -551,7 +604,16 @@ export default function PushFlappyGame() {
     setScorePosted(false);
     setSubmitMsg(null);
     setSubmitting(false);
-    gameRef.current = { ...createInitialState(g.width, g.height, loadHighScore(), laDayKey()), birdY: g.birdY };
+    gameRef.current = {
+      ...createInitialState(
+        g.width,
+        g.height,
+        loadHighScore(),
+        laDayKey(),
+        raceSeedRef.current ?? undefined
+      ),
+      birdY: g.birdY,
+    };
     setUi((u) => ({ ...u, status: "ready", score: 0, reps: 0, highScore: loadHighScore() }));
   };
 
@@ -571,7 +633,13 @@ export default function PushFlappyGame() {
       reps: ui.reps,
       wipeoutLine,
       beatTarget,
+      raceId,
     });
+
+  const trackShare = (channel: "wa" | "x" | "copy" | "native" | "card" | "primary") => {
+    track("share_click", { channel, ...(raceId ? { race: raceId } : {}) });
+    if (raceId) track("race_share", { race: raceId, channel });
+  };
 
   const currentShareCard = () =>
     renderShareCard({
@@ -584,28 +652,28 @@ export default function PushFlappyGame() {
 
   const onShareWhatsApp = () => {
     const payload = currentSharePayload();
-    track("share_click", { channel: "wa" });
+    trackShare("wa");
     openShareWindow(whatsappShareUrl(payload.text));
     flashShareStatus("opened");
   };
 
   const onShareX = () => {
     const payload = currentSharePayload();
-    track("share_click", { channel: "x" });
+    trackShare("x");
     openShareWindow(xIntentUrl({ text: payload.textNoUrl, url: payload.url }));
     flashShareStatus("opened");
   };
 
   const onCopyLink = async () => {
     const payload = currentSharePayload();
-    track("share_click", { channel: "copy" });
+    trackShare("copy");
     // Prefer beat-me URL; include full challenge text for paste-anywhere sharing.
     const result = await copyToClipboard(`${payload.text}`);
     flashShareStatus(result);
   };
 
   const onSaveCard = () => {
-    track("share_click", { channel: "card" });
+    trackShare("card");
     try {
       const card = currentShareCard();
       downloadShareCard(
@@ -620,7 +688,7 @@ export default function PushFlappyGame() {
 
   const onShareMore = async () => {
     const payload = currentSharePayload();
-    track("share_click", { channel: "native" });
+    trackShare("native");
     let file: File | null = null;
     try {
       file = await shareCardFile(currentShareCard());
@@ -637,7 +705,7 @@ export default function PushFlappyGame() {
 
   const onSharePrimary = async () => {
     const payload = currentSharePayload();
-    track("share_click", { channel: "primary" });
+    trackShare("primary");
     const canNative =
       typeof navigator !== "undefined" && typeof navigator.share === "function";
     if (canNative) {
@@ -675,6 +743,20 @@ export default function PushFlappyGame() {
     setBoardLoading(true);
     setBoardError(null);
     try {
+      if (raceId) {
+        const res = await fetch(`/api/race/${encodeURIComponent(raceId)}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`Board error ${res.status}`);
+        const data = (await res.json()) as {
+          entries?: RaceEntry[];
+          storage: LeaderboardStorage;
+        };
+        setBoardEntries(asBoardEntries(data.entries ?? []));
+        setBoardStorage(data.storage);
+        setBoardDay(raceId);
+        return;
+      }
       const day = laDayKey();
       setBoardDay(day);
       const res = await fetch(`/api/leaderboard?day=${encodeURIComponent(day)}`, { cache: "no-store" });
@@ -688,7 +770,7 @@ export default function PushFlappyGame() {
     } finally {
       setBoardLoading(false);
     }
-  }, []);
+  }, [raceId]);
 
   const onOpenBoard = () => {
     // Stops getUserMedia via boardOpen effect; pose init stays gated while open
@@ -698,6 +780,12 @@ export default function PushFlappyGame() {
     setSubmitMsg(null);
     void loadBoard();
   };
+
+  useEffect(() => {
+    if (!boardOpen || !raceId) return;
+    const id = setInterval(() => void loadBoard(), 5_000);
+    return () => clearInterval(id);
+  }, [boardOpen, raceId, loadBoard]);
 
   // Legacy ?board=1 is redirected to /board above — do not open overlay or touch camera.
 
@@ -715,6 +803,31 @@ export default function PushFlappyGame() {
       }
       const savedNick = nick.trim() || "Anon";
       const savedEmoji = emoji.trim() || "🐦";
+      if (raceId) {
+        const res = await fetch(`/api/race/${encodeURIComponent(raceId)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nick: savedNick,
+            emoji: savedEmoji,
+            score: ui.score,
+            reps: ui.reps,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `Submit failed (${res.status})`);
+        setBoardEntries(asBoardEntries(data.entries ?? []));
+        setBoardStorage(data.storage);
+        track("race_score", { race: raceId, score: ui.score, reps: ui.reps, storage: data.storage });
+        scorePostedRef.current = true;
+        setScorePosted(true);
+        setSubmitMsg(
+          data.storage === "memory"
+            ? "Posted to race (memory — set BLOB_READ_WRITE_TOKEN for persistence)"
+            : "Posted to this race!"
+        );
+        return;
+      }
       const res = await fetch("/api/leaderboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -744,7 +857,7 @@ export default function PushFlappyGame() {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [nick, emoji, ui.score, ui.reps]);
+  }, [nick, emoji, ui.score, ui.reps, raceId]);
 
   // Auto-POST once when a run ends — Challenge / Play again must not skip the board.
   useEffect(() => {
@@ -803,7 +916,7 @@ export default function PushFlappyGame() {
         <header className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 pointer-events-none">
           <Link href="/" className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">← Home</Link>
           <div className="font-display rounded-full bg-stone-950/70 px-3 py-2 text-sm font-bold tracking-tight text-amber-100 backdrop-blur-md">Push Flappy</div>
-          <button type="button" onClick={onOpenBoard} className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">Board</button>
+          <button type="button" onClick={onOpenBoard} className="pointer-events-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/55 px-3 py-2 text-sm backdrop-blur-md hover:bg-black/70">{raceId ? "Race" : "Board"}</button>
         </header>
       )}
       {showReadyChrome && (
@@ -839,7 +952,7 @@ export default function PushFlappyGame() {
         )}
         {ui.status === "ready" && <CoachBanner coachMessage={coachMessage} calibPhase={calibPhase} holdProgress={holdProgress} />}
         {startReady && countdown == null && !obsMode && (
-          <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} onStart={onStart} />
+          <ReadyPanel canStart={canStart} hasPose={hasPose} calibSet={calibSet} beatTarget={beatTarget} raceId={raceId} onStart={onStart} />
         )}
         {countdown != null && countdown > 0 && <CountdownOverlay count={countdown} />}
         {ui.status === "over" && (
@@ -862,6 +975,7 @@ export default function PushFlappyGame() {
             scorePosted={scorePosted}
             scorePosting={submitting}
             onSubmitScore={() => void onSubmitScore()}
+            raceId={raceId}
           />
         )}
         <LeaderboardPanel
@@ -883,8 +997,33 @@ export default function PushFlappyGame() {
           onClose={() => { setBoardOpen(false); }}
           onRefresh={() => void loadBoard()}
           onSubmit={() => void onSubmitScore()}
+          title={raceId ? "Race board" : "Daily board"}
+          subtitle={
+            raceId
+              ? `${raceId} · same pipes · ${
+                  boardStorage && boardStorage !== "memory"
+                    ? "live"
+                    : boardStorage === "memory"
+                      ? "memory (not durable)"
+                      : "…"
+                }`
+              : undefined
+          }
         />
       </div>
     </div>
   );
+}
+
+function asBoardEntries(entries: RaceEntry[]): LeaderboardEntry[] {
+  return entries.map((e) => ({
+    nick: e.nick,
+    emoji: e.emoji,
+    score: e.score,
+    reps: e.reps,
+    at: e.at,
+    country: e.country,
+    dayKey: "",
+    demo: false,
+  }));
 }

@@ -1,0 +1,272 @@
+/**
+ * Race-scoped score boards.
+ * Same persist backends as the daily board (Blob / KV / memory).
+ * Latest score per nick. Cap unique nicks. No demo seeds.
+ */
+
+import { normalizeCountry } from "./country";
+import {
+  blobConfigured,
+  kvConfigured,
+  kvRestConfig,
+  persistKind,
+  type LeaderboardStorage,
+} from "./leaderboard-store";
+import { RACE_NICK_CAP, mintRaceId, racePipeSeed, sanitizeRaceId } from "./race";
+
+export type RaceEntry = {
+  nick: string;
+  emoji: string;
+  score: number;
+  reps: number;
+  at: number;
+  /** ISO 3166-1 alpha-2 */
+  country: string;
+};
+
+export type RaceRecord = {
+  id: string;
+  seed: string;
+  createdAt: number;
+  entries: RaceEntry[];
+};
+
+export type RacePayload = RaceRecord & {
+  storage: LeaderboardStorage;
+};
+
+const KEY_PREFIX = "push-flappy:race:";
+const BLOB_PREFIX = "push-flappy/race/";
+const KV_TTL_SEC = 60 * 60 * 24 * 7;
+
+type GlobalMem = {
+  __pushFlappyRaces?: Map<string, RaceRecord>;
+};
+
+function memStore(): Map<string, RaceRecord> {
+  const g = globalThis as unknown as GlobalMem;
+  if (!g.__pushFlappyRaces) g.__pushFlappyRaces = new Map();
+  return g.__pushFlappyRaces;
+}
+
+function blobPathname(id: string): string {
+  return `${BLOB_PREFIX}${id}.json`;
+}
+
+function sortEntries(entries: RaceEntry[]): RaceEntry[] {
+  return [...entries].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.reps !== a.reps) return b.reps - a.reps;
+    return a.at - b.at;
+  });
+}
+
+function normalizeEntry(e: RaceEntry): RaceEntry {
+  return {
+    nick: e.nick,
+    emoji: e.emoji,
+    score: e.score,
+    reps: e.reps,
+    at: e.at,
+    country: normalizeCountry(e.country),
+  };
+}
+
+function emptyRace(id: string): RaceRecord {
+  return {
+    id,
+    seed: racePipeSeed(id),
+    createdAt: Date.now(),
+    entries: [],
+  };
+}
+
+async function parseRecord(raw: string, fallbackId: string): Promise<RaceRecord | null> {
+  try {
+    const parsed = JSON.parse(raw) as Partial<RaceRecord>;
+    const id = sanitizeRaceId(parsed.id) ?? fallbackId;
+    if (!id) return null;
+    const entries = Array.isArray(parsed.entries)
+      ? parsed.entries.map((e) => normalizeEntry(e as RaceEntry))
+      : [];
+    return {
+      id,
+      seed:
+        typeof parsed.seed === "string" && parsed.seed
+          ? parsed.seed
+          : racePipeSeed(id),
+      createdAt:
+        typeof parsed.createdAt === "number" && Number.isFinite(parsed.createdAt)
+          ? parsed.createdAt
+          : Date.now(),
+      entries: sortEntries(entries).slice(0, RACE_NICK_CAP),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function kvCommand<T>(
+  ...args: (string | number)[]
+): Promise<T | null> {
+  const creds = kvRestConfig();
+  if (!creds) return null;
+  const { url, token } = creds;
+  const res = await fetch(`${url}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(args),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    console.error("KV race command failed", res.status, await res.text());
+    return null;
+  }
+  const json = (await res.json()) as { result: T };
+  return json.result;
+}
+
+async function readBlob(id: string): Promise<RaceRecord | null> {
+  const { get } = await import("@vercel/blob");
+  try {
+    const result = await get(blobPathname(id), { access: "private" });
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    const text = await new Response(result.stream).text();
+    return parseRecord(text, id);
+  } catch (e) {
+    console.error("Blob race read failed", e instanceof Error ? e.name : "");
+    return null;
+  }
+}
+
+async function writeBlob(record: RaceRecord): Promise<void> {
+  const { put } = await import("@vercel/blob");
+  await put(blobPathname(record.id), JSON.stringify(record), {
+    access: "private",
+    allowOverwrite: true,
+    addRandomSuffix: false,
+    contentType: "application/json",
+  });
+}
+
+async function readRaw(id: string): Promise<{
+  record: RaceRecord | null;
+  storage: LeaderboardStorage;
+}> {
+  const key = KEY_PREFIX + id;
+  const storage = persistKind();
+  if (storage === "blob") {
+    return { record: await readBlob(id), storage };
+  }
+  if (storage === "kv") {
+    const raw = await kvCommand<string | null>("GET", key);
+    const record = raw ? await parseRecord(raw, id) : null;
+    return { record, storage };
+  }
+  return { record: memStore().get(key) ?? null, storage: "memory" };
+}
+
+async function writeRaw(
+  record: RaceRecord,
+  storage: LeaderboardStorage
+): Promise<void> {
+  const payload: RaceRecord = {
+    ...record,
+    entries: sortEntries(record.entries).slice(0, RACE_NICK_CAP),
+  };
+  const key = KEY_PREFIX + payload.id;
+  if (storage === "blob" && blobConfigured()) {
+    await writeBlob(payload);
+    return;
+  }
+  if (storage === "kv" && kvConfigured()) {
+    await kvCommand("SET", key, JSON.stringify(payload));
+    await kvCommand("EXPIRE", key, KV_TTL_SEC);
+    return;
+  }
+  memStore().set(key, payload);
+}
+
+export async function getRace(id: string): Promise<RacePayload | null> {
+  const clean = sanitizeRaceId(id);
+  if (!clean) return null;
+  const { record, storage } = await readRaw(clean);
+  if (!record) return null;
+  return { ...record, storage };
+}
+
+export async function createRace(preferredId?: string): Promise<RacePayload> {
+  const storage = persistKind();
+  if (preferredId) {
+    const existing = await getRace(preferredId);
+    if (existing) return existing;
+    const record = emptyRace(preferredId);
+    await writeRaw(record, storage);
+    return { ...record, storage };
+  }
+
+  for (let i = 0; i < 6; i++) {
+    const id = mintRaceId();
+    const existing = await getRace(id);
+    if (existing) continue;
+    const record = emptyRace(id);
+    await writeRaw(record, storage);
+    return { ...record, storage };
+  }
+
+  const fallbackId =
+    sanitizeRaceId(Date.now().toString(36).slice(-8)) ?? mintRaceId();
+  const record = emptyRace(fallbackId);
+  await writeRaw(record, storage);
+  return { ...record, storage };
+}
+
+export async function ensureRace(id: string): Promise<RacePayload | null> {
+  const clean = sanitizeRaceId(id);
+  if (!clean) return null;
+  const existing = await getRace(clean);
+  if (existing) return existing;
+  return createRace(clean);
+}
+
+export class RaceFullError extends Error {
+  constructor() {
+    super(`Race is full (${RACE_NICK_CAP} nicks)`);
+    this.name = "RaceFullError";
+  }
+}
+
+export async function submitRaceScore(
+  id: string,
+  entry: Omit<RaceEntry, "at"> & { country?: string }
+): Promise<RacePayload> {
+  const race = await ensureRace(id);
+  if (!race) {
+    throw new Error("Invalid race");
+  }
+  const full: RaceEntry = {
+    nick: entry.nick,
+    emoji: entry.emoji,
+    score: entry.score,
+    reps: entry.reps,
+    at: Date.now(),
+    country: normalizeCountry(entry.country),
+  };
+  const nickKey = full.nick.toLowerCase();
+  const others = race.entries.filter((e) => e.nick.toLowerCase() !== nickKey);
+  if (others.length >= RACE_NICK_CAP) {
+    throw new RaceFullError();
+  }
+  const entries = sortEntries([...others, full]).slice(0, RACE_NICK_CAP);
+  const next: RaceRecord = {
+    id: race.id,
+    seed: race.seed,
+    createdAt: race.createdAt,
+    entries,
+  };
+  await writeRaw(next, race.storage);
+  return { ...next, storage: race.storage };
+}

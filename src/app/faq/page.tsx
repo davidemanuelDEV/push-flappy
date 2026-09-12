@@ -69,7 +69,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Can I put this in OBS?",
-    a: "Yes. Add https://pushflappy.com/stream (or /play?obs=1) as a Browser Source at 1920×1080. That view hides marketing chrome and enlarges the score / beat-me HUD. Allow the camera, hold a plank, and the usual 3-2-1 countdown starts. Viewers dare you by opening the beat-me link on their phone. Optional second source: /overlay for today’s board (no camera). See STREAMERS.md.",
+    a: "Yes. Add https://pushflappy.com/stream (or /play?obs=1) as a Browser Source at 1920×1080. That view hides marketing chrome and enlarges the score / beat-me HUD. Allow the camera, hold a plank, and the usual 3-2-1 countdown starts. Viewers dare you by opening the beat-me link on their phone. Optional second source: /overlay for today’s board (no camera). For a live race board use /race/{id}/overlay. See STREAMERS.md.",
+  },
+  {
+    q: "How do friend races work?",
+    a: "Open /race to mint one share link like /race/abc12. Friends tap it, enter a nick, and hit Play — they get the same pipe seed. Wipeouts auto-post to that race’s top-10 (latest score per nick, about 10 people). Spectators stay on the race page and watch without a camera. This is async scores, not lockstep multiplayer. Out-of-race wipeouts still use Challenge a friend.",
   },
 ];
 

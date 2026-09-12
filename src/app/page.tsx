@@ -115,12 +115,18 @@ export default function HomePage() {
           >
             Start playing
           </Link>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             <Link
               href="/board"
               className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
             >
               Daily board
+            </Link>
+            <Link
+              href="/race"
+              className="flex min-h-12 items-center justify-center rounded-2xl border border-amber-900/50 bg-stone-900/70 px-2 py-3 text-sm font-semibold text-amber-50 transition hover:border-amber-600/50 hover:bg-stone-900"
+            >
+              Race
             </Link>
             <Link
               href="/faq"
@@ -216,6 +222,10 @@ export default function HomePage() {
             {" · "}
             <Link href="/board" className="underline-offset-2 hover:underline">
               Daily board
+            </Link>
+            {" · "}
+            <Link href="/race" className="underline-offset-2 hover:underline">
+              Race
             </Link>
             {" · "}
             <Link href="/play" className="underline-offset-2 hover:underline">

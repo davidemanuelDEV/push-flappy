@@ -10,7 +10,11 @@ export type GrowthEvent =
   | "share_click"
   | "board_submit"
   | "reminder_optin"
-  | "sibling_click";
+  | "sibling_click"
+  | "race_create"
+  | "race_join"
+  | "race_score"
+  | "race_share";
 
 export type ShareChannel = "wa" | "x" | "copy" | "native" | "card" | "primary";
 

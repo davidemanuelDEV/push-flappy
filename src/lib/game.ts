@@ -63,9 +63,10 @@ export function createInitialState(
   width: number,
   height: number,
   highScore: number,
-  dayKey: string = laDayKey()
+  dayKey: string = laDayKey(),
+  seedOverride?: string
 ): GameState {
-  const seed = dailyPipeSeed(dayKey);
+  const seed = seedOverride || dailyPipeSeed(dayKey);
   return {
     status: "ready",
     birdY: height * 0.5,

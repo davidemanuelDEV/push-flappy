@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { sanitizeRaceId } from "@/lib/race";
 import PlayClient from "./PlayClient";
 
 const SITE = "https://pushflappy.com";
@@ -6,6 +7,7 @@ const SITE = "https://pushflappy.com";
 type PlaySearch = {
   beat?: string | string[];
   reps?: string | string[];
+  race?: string | string[];
 };
 
 function first(v: string | string[] | undefined): string | undefined {
@@ -28,8 +30,35 @@ export async function generateMetadata({
   const sp = await searchParams;
   const beat = parseNonNegInt(first(sp.beat));
   const reps = parseNonNegInt(first(sp.reps));
+  const race = sanitizeRaceId(first(sp.race));
 
   const ogImage = new URL("/api/og", SITE);
+
+  if (race) {
+    const title = `Race ${race.toUpperCase()} — Push Flappy`;
+    const description =
+      "Same pipes as this race. Wipeout posts to the live top-10. Camera to play; spectate on the race link.";
+    const playUrl = new URL("/play", SITE);
+    playUrl.searchParams.set("race", race);
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        url: playUrl.toString(),
+        type: "website",
+        siteName: "Push Flappy",
+        images: [{ url: ogImage.toString(), width: 1200, height: 630, alt: title }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [ogImage.toString()],
+      },
+    };
+  }
 
   if (beat == null) {
     return {
