@@ -27,7 +27,7 @@ export async function generateMetadata({
   }
   const title = `Race ${id.toUpperCase()} — Push Flappy`;
   const description =
-    "Same pipes. Live top-10. Open play or spectate this race — no camera needed to watch.";
+    "Same pipes. Put a nick on the live top-10, then play — or spectate with no camera.";
   const url = `${SITE}/race/${id}`;
   return {
     title,

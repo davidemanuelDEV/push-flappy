@@ -38,7 +38,7 @@ Mint a race at [https://pushflappy.com/race](https://pushflappy.com/race), then 
 **URL:** `https://pushflappy.com/race/{id}/overlay`  
 (or `/race/{id}?obs=1`)
 
-Polls `GET /api/race/{id}` — latest score per nick, cap 10. Viewers join via the same `/race/{id}` link on their phone (`/play?race={id}`). Async scores, not lockstep frames.
+Polls `GET /api/race/{id}` — nicks appear as soon as someone joins (score 0), then latest score per nick, cap 10. Viewers join via the same `/race/{id}` link on their phone (name first, then `/play?race={id}`). Async scores, not lockstep frames.
 
 ## Docs in the app
 

@@ -39,8 +39,8 @@ npm run build && npm start
 
 ### Race (async lobby)
 - `/race` mints a short id and copies `https://pushflappy.com/race/{id}`.
-- `/race/[id]` is the dare-first page: nick + Play (`/play?race={id}`) + live top-10 (polls). Spectators need no camera.
-- Same pipe seed for everyone in that race. Wipeout auto-posts latest score per nick (cap 10). Not frame-sync.
+- `/race/[id]` is the dare-first page: a real nick (2–16 letters/numbers) is required. Join POSTs that nick at score 0 / reps 0 so the live top-10 has names before anyone flies. Play (`/play?race={id}`) stays off until join succeeds. Spectators need no camera.
+- Same pipe seed for everyone in that race. Wipeout auto-posts latest score per nick (cap 10; same nick updates, no second row). Not frame-sync.
 - OBS: `/race/[id]/overlay` or `/race/[id]?obs=1` — big ranks, no camera.
 - Persistence: same Blob / KV / memory backends as the daily board (`push-flappy/race/{id}.json`).
 
@@ -160,6 +160,6 @@ Do not add paid Twitch Extensions or a `!beat` bot here.
 | `/race/[id]/overlay` | OBS race board, no chrome |
 | `/api/leaderboard` | Daily board GET/POST |
 | `/api/race` | `POST` mint / ensure a race |
-| `/api/race/[id]` | `GET` board; `POST` score |
+| `/api/race/[id]` | `GET` board; `POST` score (`0`/`0` = join, names before play) |
 | `/api/reminders` | Email reminder capture POST |
 | `/board` | Camera-free daily board + reminder opt-in |
