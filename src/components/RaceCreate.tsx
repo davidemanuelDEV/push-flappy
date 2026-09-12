@@ -60,6 +60,16 @@ export default function RaceCreate() {
           One link. Everyone puts a nick on the live top-10 first, then plays
           the same pipe seed. Spectators watch without a camera.
         </p>
+        <p className="mx-auto max-w-sm text-sm leading-relaxed text-stone-500">
+          Async scores — not lockstep frames. Streamers can add{" "}
+          <Link
+            href="/streamers"
+            className="font-semibold text-amber-200/80 underline-offset-2 hover:underline"
+          >
+            /race/{"{id}"}/overlay
+          </Link>{" "}
+          in OBS.
+        </p>
         <button
           type="button"
           onClick={() => void startRace()}
@@ -81,6 +91,10 @@ export default function RaceCreate() {
           {" · "}
           <Link href="/board" className="underline-offset-2 hover:underline">
             Daily board
+          </Link>
+          {" · "}
+          <Link href="/streamers" className="underline-offset-2 hover:underline">
+            Streamers / OBS
           </Link>
         </p>
       </div>

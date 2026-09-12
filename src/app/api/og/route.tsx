@@ -10,12 +10,45 @@ function parseScore(raw: string | null): number | null {
   return n;
 }
 
+const GUIDE_OG: Record<
+  string,
+  { kicker: string; headline: string; sub: string }
+> = {
+  webcam: {
+    kicker: "How to play",
+    headline: "Webcam push-up Flappy",
+    sub: "Your torso is the bird",
+  },
+  obs: {
+    kicker: "OBS",
+    headline: "Push-up overlay",
+    sub: "Browser Source · 1920×1080",
+  },
+  race: {
+    kicker: "Race friends",
+    headline: "Async fitness race",
+    sub: "Nick first · live top-10",
+  },
+  squat: {
+    kicker: "Same family",
+    headline: "Squat Flappy",
+    sub: "Arms cooked? Legs next",
+  },
+};
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
+  const guideKey = (searchParams.get("guide") ?? "").trim().toLowerCase();
+  const guide = GUIDE_OG[guideKey];
   const beat = parseScore(searchParams.get("beat")) ?? 0;
   const reps = parseScore(searchParams.get("reps"));
-  const sub =
-    reps != null && reps > 0 ? `${reps} push-ups` : "pipes cleared — beat me";
+  const sub = guide
+    ? guide.sub
+    : reps != null && reps > 0
+      ? `${reps} push-ups`
+      : "pipes cleared — beat me";
+  const headline = guide ? guide.headline : String(beat);
+  const kicker = guide ? guide.kicker : "Push Flappy";
 
   return new ImageResponse(
     (
@@ -65,7 +98,7 @@ export async function GET(req: NextRequest) {
               textTransform: "uppercase",
             }}
           >
-            Push Flappy
+            {kicker}
           </div>
 
           {/* geometric bird — simple ellipses via nested divs */}
@@ -144,13 +177,16 @@ export async function GET(req: NextRequest) {
           <div
             style={{
               color: "#fff8e7",
-              fontSize: 160,
+              fontSize: guide ? 64 : 160,
               fontWeight: 900,
               lineHeight: 1,
-              letterSpacing: -4,
+              letterSpacing: guide ? -1 : -4,
+              textAlign: "center",
+              paddingLeft: 40,
+              paddingRight: 40,
             }}
           >
-            {String(beat)}
+            {headline}
           </div>
           <div
             style={{
@@ -170,7 +206,7 @@ export async function GET(req: NextRequest) {
               fontWeight: 800,
             }}
           >
-            Think you can beat me?
+            {guide ? "Free in the browser" : "Think you can beat me?"}
           </div>
           <div
             style={{

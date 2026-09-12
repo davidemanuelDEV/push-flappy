@@ -71,6 +71,7 @@ import {
 } from "@/components/GamePanels";
 import PlaySplash from "@/components/PlaySplash";
 import SiblingPromoPill from "@/components/SiblingPromoPill";
+import { markFlapped } from "@/lib/install-flag";
 
 type CamStatus = "idle" | "requesting" | "ready" | "error" | "denied";
 
@@ -137,6 +138,7 @@ export default function PushFlappyGame() {
   const crashRef = useRef<CrashBurst | null>(null);
   const pendingWipeoutRef = useRef<string | null>(null);
   const lastWipeoutRef = useRef<string | null>(null);
+  const flappedRef = useRef(false);
 
   const [boardOpen, setBoardOpen] = useState(false);
   const [boardLoading, setBoardLoading] = useState(false);
@@ -424,6 +426,10 @@ export default function PushFlappyGame() {
       const sample = lastPoseSampleRef.current;
       if (!g) return;
       setUi({ status: g.status, score: g.score, highScore: g.highScore, reps: sample.reps });
+      if (!flappedRef.current && g.score > 0) {
+        flappedRef.current = true;
+        markFlapped();
+      }
       setHasPose(sample.hasPose);
       setCalibPhase(sample.calibPhase);
       setHoldProgress(sample.holdProgress);

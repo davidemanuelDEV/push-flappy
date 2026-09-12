@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasFlapped } from "@/lib/install-flag";
 
 /** Subtle “Add to Home Screen” tip for iOS Safari (no beforeinstallprompt there). */
 export default function IosInstallTip() {
@@ -20,7 +21,8 @@ export default function IosInstallTip() {
       window.matchMedia("(display-mode: standalone)").matches ||
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (navigator as any).standalone === true;
-    if (isIOS && !isStandalone) setShow(true);
+    // Soft PWA tip only after a successful flap — never on a cold first load.
+    if (isIOS && !isStandalone && hasFlapped()) setShow(true);
   }, []);
 
   if (!show) return null;
