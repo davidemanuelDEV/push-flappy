@@ -2,7 +2,9 @@
  * Classic Flappy pipe scrolling + collision.
  * Bird Y is driven externally (pose), not by gravity.
  * Pipe gaps use a seeded RNG so daily runs are comparable.
- * Cadence: random holds / rises / falls (incl. long bottom holds).
+ * Cadence: first 10 spawned pipes are full-range push-up reps
+ * (high ↔ low, one pipe each), then a short mid-band hold (2–4),
+ * then ~8–10 reps, repeating. No long bottom/top planks.
  * Speed: +10% at 15, 20, 25, 30, … (compounding).
  */
 
@@ -33,13 +35,24 @@ export type Pipe = {
 
 /** Vertical pattern for upcoming pipes (seeded). */
 export type Cadence = {
-  kind: "hold" | "rise" | "fall";
+  kind: "hold" | "reps" | "rise" | "fall";
   /** Pipes left in this pattern (including the one about to spawn). */
   remaining: number;
   gapY: number;
   /** Delta applied each spawn for rise/fall (canvas Y; + = lower on screen). */
   step: number;
 };
+
+/** First ten spawned pipes are always full-range reps. */
+export const OPENING_REP_COUNT = 10;
+const HOLD_LEN_MIN = 2;
+const HOLD_LEN_SPAN = 3; // 2–4
+const CYCLE_REP_MIN = 8;
+const CYCLE_REP_SPAN = 3; // 8–10
+/** Stay just inside the playable extremes so a rep is a real dip. */
+const REP_INSET = 0.06;
+const HOLD_MID_T = 0.5;
+const HOLD_LOW_T = 0.64;
 
 export type GameState = {
   status: "ready" | "playing" | "over";
@@ -116,65 +129,56 @@ export function pipeGapFrac(width: number, height: number): number {
   return PIPE_GAP_FRAC;
 }
 
+function repBand(height: number, gap: number) {
+  const { min, max } = gapBounds(height, gap);
+  const range = max - min;
+  return {
+    min,
+    max,
+    range,
+    highY: min + range * REP_INSET,
+    lowY: max - range * REP_INSET,
+    midY: min + range * HOLD_MID_T,
+    midLowY: min + range * HOLD_LOW_T,
+  };
+}
+
 function pickCadence(
   rng: Rng,
   height: number,
   gap: number,
-  prevGapY: number | null
+  prevKind: Cadence["kind"] | null
 ): Cadence {
-  const { min, max } = gapBounds(height, gap);
-  const range = max - min;
-  const roll = rng();
+  const band = repBand(height, gap);
 
-  // ~42% hold (incl. long bottom holds), ~29% rise, ~29% fall
-  if (roll < 0.42) {
-    const long = rng() < 0.45;
-    const remaining = long
-      ? 4 + Math.floor(rng() * 4) // 4–7
-      : 2 + Math.floor(rng() * 3); // 2–4
-    const place = rng();
-    let gapY: number;
-    if (place < 0.4) {
-      // Bottom hold — bird must stay low
-      gapY = max - range * (0.04 + rng() * 0.1);
-    } else if (place < 0.62) {
-      // Top hold
-      gapY = min + range * (0.04 + rng() * 0.1);
-    } else if (prevGapY != null) {
-      gapY = prevGapY;
-    } else {
-      gapY = min + rng() * range;
-    }
+  // Opening (or any first pick): guaranteed full-range reps, no RNG, no holds.
+  if (prevKind == null) {
     return {
-      kind: "hold",
-      remaining,
-      gapY: clamp(gapY, min, max),
+      kind: "reps",
+      remaining: OPENING_REP_COUNT,
+      gapY: band.highY,
       step: 0,
     };
   }
 
-  const remaining = 2 + Math.floor(rng() * 4); // 2–5
-  const start =
-    prevGapY != null
-      ? prevGapY
-      : min + rng() * range;
-  const stepMag = (0.1 + rng() * 0.16) * range;
-
-  if (roll < 0.71) {
-    // Rise: gap center moves up (smaller Y) → player goes up then down
+  if (prevKind === "reps") {
+    const remaining = HOLD_LEN_MIN + Math.floor(rng() * HOLD_LEN_SPAN);
+    const slightlyLower = rng() < 0.5;
     return {
-      kind: "rise",
+      kind: "hold",
       remaining,
-      gapY: clamp(start, min, max),
-      step: -stepMag,
+      gapY: slightlyLower ? band.midLowY : band.midY,
+      step: 0,
     };
   }
 
+  // After a hold (or a leftover rise/fall): another set of reps.
+  const remaining = CYCLE_REP_MIN + Math.floor(rng() * CYCLE_REP_SPAN);
   return {
-    kind: "fall",
+    kind: "reps",
     remaining,
-    gapY: clamp(start, min, max),
-    step: stepMag,
+    gapY: band.highY,
+    step: 0,
   };
 }
 
@@ -192,21 +196,24 @@ export function spawnPipe(
   const next = (): number => draws[di++] ?? 0.5;
   const localRng: Rng = () => next();
 
-  const prevGapY =
-    state.pipes.length > 0
-      ? state.pipes[state.pipes.length - 1].gapY
-      : state.cadence?.gapY ?? null;
-
   let cadence = state.cadence;
   if (!cadence || cadence.remaining <= 0) {
-    cadence = pickCadence(localRng, state.height, gap, prevGapY);
+    cadence = pickCadence(
+      localRng,
+      state.height,
+      gap,
+      cadence?.kind ?? null
+    );
   }
 
   const gapY = clamp(cadence.gapY, min, max);
 
   // Advance pattern for the following pipe.
   let followingY = gapY;
-  if (cadence.kind === "rise" || cadence.kind === "fall") {
+  if (cadence.kind === "reps") {
+    const band = repBand(state.height, gap);
+    followingY = gapY <= band.midY ? band.lowY : band.highY;
+  } else if (cadence.kind === "rise" || cadence.kind === "fall") {
     followingY = clamp(gapY + cadence.step, min, max);
   }
   const nextCadence: Cadence = {
