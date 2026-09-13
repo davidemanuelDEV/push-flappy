@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import RaceLobby from "@/components/RaceLobby";
 import StreamOverlay from "@/components/StreamOverlay";
-import { sanitizeRaceId } from "@/lib/race";
+import { raceDisplayTitle, sanitizeRaceId } from "@/lib/race";
+import { getRace } from "@/lib/race-store";
 import { canonicalUrl, ogImageUrl } from "@/lib/seo";
 
 type RaceParams = { id: string };
@@ -20,17 +21,21 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id: raw } = await params;
   const id = sanitizeRaceId(raw);
-  const ogImage = ogImageUrl();
   if (!id) {
     return {
       title: "Race — Push Flappy",
       alternates: { canonical: canonicalUrl("/race") },
     };
   }
-  const title = `Race ${id.toUpperCase()} — Push Flappy`;
+  const race = await getRace(id);
+  const heading = raceDisplayTitle(id, race?.title);
+  const title = race?.title
+    ? `${heading} — Push Flappy`
+    : `Race ${id.toUpperCase()} — Push Flappy`;
   const description =
     "Same pipes. Put a nick on the live top-10, then play — or spectate with no camera.";
   const url = canonicalUrl(`/race/${id}`);
+  const ogImage = ogImageUrl(race?.title ? { title: race.title } : undefined);
   return {
     title,
     description,

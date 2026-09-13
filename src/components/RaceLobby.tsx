@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import { sanitizeNick } from "@/lib/leaderboard-store";
-import { RACE_NICK_CAP, RACE_POLL_MS, raceOverlayPath, racePlayPath, raceUrl } from "@/lib/race";
+import {
+  RACE_NICK_CAP,
+  RACE_POLL_MS,
+  raceDisplayTitle,
+  raceOverlayPath,
+  racePlayPath,
+  raceUrl,
+} from "@/lib/race";
 import { postRaceJoin } from "@/lib/race-client";
 import type { RaceEntry, RacePayload } from "@/lib/race-store";
 import { copyToClipboard } from "@/lib/share";
@@ -207,7 +214,7 @@ export default function RaceLobby({ raceId }: { raceId: string }) {
           Race · same pipes
         </p>
         <h1 className="font-display mt-2 text-4xl font-bold tracking-tight text-amber-50">
-          {raceId.toUpperCase()}
+          {raceDisplayTitle(raceId, race?.title)}
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-stone-400">
           Put a nick on the live top-10 before anyone flies. Spectators stay

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canonicalUrl, guideOgUrl } from "./seo";
+import { canonicalUrl, guideOgUrl, ogImageUrl } from "./seo";
 
 test("canonicalUrl is origin + path with no query", () => {
   assert.equal(canonicalUrl("/"), "https://pushflappy.com/");
@@ -27,4 +27,9 @@ test("canonicalUrl is origin + path with no query", () => {
     guideOgUrl("obs"),
     "https://pushflappy.com/api/og?guide=obs",
   );
+  assert.equal(
+    ogImageUrl({ title: "Eng vs Sales" }),
+    "https://pushflappy.com/api/og?title=Eng+vs+Sales",
+  );
+  assert.equal(ogImageUrl(), "https://pushflappy.com/api/og");
 });

@@ -21,12 +21,34 @@ export const RACE_ID_MIN = 3;
 export const RACE_ID_MAX = 8;
 export const RACE_ID_MINT_LEN = 5;
 
+export const RACE_TITLE_MIN = 2;
+export const RACE_TITLE_MAX = 32;
+
 export function sanitizeRaceId(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const id = raw.trim().toLowerCase();
   if (id.length < RACE_ID_MIN || id.length > RACE_ID_MAX) return null;
   if (!/^[a-z0-9]+$/.test(id)) return null;
   return id;
+}
+
+/**
+ * Optional workplace-race label. Empty / invalid → undefined (id-only).
+ * Letters, numbers, spaces, basic punctuation. 2–32 after trim.
+ */
+export function sanitizeRaceTitle(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const title = raw.trim().replace(/\s+/g, " ");
+  if (title.length < RACE_TITLE_MIN || title.length > RACE_TITLE_MAX) {
+    return undefined;
+  }
+  if (!/^[\p{L}\p{N} .,'!?\-:&()+#]+$/u.test(title)) return undefined;
+  return title;
+}
+
+/** Lobby / overlay heading: titled race or today’s id-only label. */
+export function raceDisplayTitle(id: string, title?: string): string {
+  return title || id.toUpperCase();
 }
 
 export function mintRaceId(): string {

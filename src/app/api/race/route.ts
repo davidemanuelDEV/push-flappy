@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { raceUrl, sanitizeRaceId } from "@/lib/race";
+import { raceUrl, sanitizeRaceId, sanitizeRaceTitle } from "@/lib/race";
 import { createRace } from "@/lib/race-store";
 import { allowRequest } from "@/lib/leaderboard-store";
 
@@ -22,15 +22,29 @@ export async function POST(req: NextRequest) {
   }
 
   let preferred: string | undefined;
+  let title: string | undefined;
   try {
     const body = (await req.json()) as Record<string, unknown>;
     const clean = sanitizeRaceId(body?.id);
     if (clean) preferred = clean;
+    const rawTitle = typeof body?.title === "string" ? body.title : "";
+    if (rawTitle.trim()) {
+      title = sanitizeRaceTitle(rawTitle);
+      if (!title) {
+        return NextResponse.json(
+          {
+            error:
+              "Title must be 2–32 letters, numbers, spaces, or basic punctuation",
+          },
+          { status: 400 }
+        );
+      }
+    }
   } catch {
     /* empty body is fine — mint a new id */
   }
 
-  const race = await createRace(preferred);
+  const race = await createRace(preferred, title);
   return NextResponse.json(
     { ...race, url: raceUrl(race.id) },
     { headers: { "Cache-Control": "no-store" } }

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import StreamOverlay from "@/components/StreamOverlay";
-import { sanitizeRaceId } from "@/lib/race";
+import { raceDisplayTitle, sanitizeRaceId } from "@/lib/race";
+import { getRace } from "@/lib/race-store";
 import { canonicalUrl } from "@/lib/seo";
 
 type RaceParams = { id: string };
@@ -13,8 +14,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id: raw } = await params;
   const id = sanitizeRaceId(raw);
+  const race = id ? await getRace(id) : null;
+  const heading = id ? raceDisplayTitle(id, race?.title) : "Race overlay";
   const title = id
-    ? `Race overlay ${id.toUpperCase()} — Push Flappy`
+    ? race?.title
+      ? `${heading} overlay — Push Flappy`
+      : `Race overlay ${id.toUpperCase()} — Push Flappy`
     : "Race overlay — Push Flappy";
   const url = id
     ? canonicalUrl(`/race/${id}/overlay`)

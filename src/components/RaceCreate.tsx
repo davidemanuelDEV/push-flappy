@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { track } from "@/lib/analytics";
+import { sanitizeRaceTitle } from "@/lib/race";
 import { copyToClipboard } from "@/lib/share";
 
 /**
@@ -15,16 +16,25 @@ export default function RaceCreate() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
 
   const startRace = async () => {
     if (busy) return;
+    const typed = title.trim();
+    const cleanTitle = sanitizeRaceTitle(typed);
+    if (typed && !cleanTitle) {
+      setError(
+        "Title must be 2–32 letters, numbers, spaces, or basic punctuation"
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/race", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(cleanTitle ? { title: cleanTitle } : {}),
       });
       const data = (await res.json()) as { id?: string; url?: string; error?: string };
       if (!res.ok || !data.id) {
@@ -70,6 +80,28 @@ export default function RaceCreate() {
           </Link>{" "}
           in OBS.
         </p>
+        <label className="mx-auto block w-full max-w-sm text-left">
+          <span className="mb-1.5 block text-xs font-semibold text-stone-400">
+            Race title <span className="font-normal text-stone-500">(optional)</span>
+          </span>
+          <input
+            aria-label="Race title"
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || busy) return;
+              e.preventDefault();
+              void startRace();
+            }}
+            placeholder="Eng vs Sales"
+            maxLength={32}
+            autoComplete="off"
+            className="w-full rounded-xl border border-amber-900/50 bg-stone-950 px-3 py-3 text-center text-sm text-amber-50 placeholder:text-stone-600"
+          />
+        </label>
         <button
           type="button"
           onClick={() => void startRace()}

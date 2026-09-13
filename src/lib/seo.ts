@@ -4,8 +4,10 @@ export const SITE_URL = "https://pushflappy.com";
 export const SITE_NAME = "Push Flappy";
 export const OG_IMAGE_PATH = "/api/og";
 
-export function ogImageUrl(): string {
-  return new URL(OG_IMAGE_PATH, SITE_URL).toString();
+export function ogImageUrl(opts?: { title?: string }): string {
+  const url = new URL(OG_IMAGE_PATH, SITE_URL);
+  if (opts?.title) url.searchParams.set("title", opts.title);
+  return url.toString();
 }
 
 /** Absolute https://pushflappy.com/{path} — never query or hash. */

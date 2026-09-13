@@ -36,19 +36,30 @@ const GUIDE_OG: Record<
   },
 };
 
+function clipOgTitle(raw: string | null): string | null {
+  if (!raw) return null;
+  const title = raw.trim().replace(/\s+/g, " ");
+  if (title.length < 2 || title.length > 32) return null;
+  if (!/^[\p{L}\p{N} .,'!?\-:&()+#]+$/u.test(title)) return null;
+  return title;
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const guideKey = (searchParams.get("guide") ?? "").trim().toLowerCase();
   const guide = GUIDE_OG[guideKey];
+  const raceTitle = clipOgTitle(searchParams.get("title"));
   const beat = parseScore(searchParams.get("beat")) ?? 0;
   const reps = parseScore(searchParams.get("reps"));
   const sub = guide
     ? guide.sub
-    : reps != null && reps > 0
-      ? `${reps} push-ups`
-      : "pipes cleared — beat me";
-  const headline = guide ? guide.headline : String(beat);
-  const kicker = guide ? guide.kicker : "Push Flappy";
+    : raceTitle
+      ? "Nick first · live top-10"
+      : reps != null && reps > 0
+        ? `${reps} push-ups`
+        : "pipes cleared — beat me";
+  const headline = guide ? guide.headline : raceTitle ? raceTitle : String(beat);
+  const kicker = guide ? guide.kicker : raceTitle ? "Race friends" : "Push Flappy";
 
   return new ImageResponse(
     (
@@ -177,10 +188,10 @@ export async function GET(req: NextRequest) {
           <div
             style={{
               color: "#fff8e7",
-              fontSize: guide ? 64 : 160,
+              fontSize: guide || raceTitle ? 64 : 160,
               fontWeight: 900,
               lineHeight: 1,
-              letterSpacing: guide ? -1 : -4,
+              letterSpacing: guide || raceTitle ? -1 : -4,
               textAlign: "center",
               paddingLeft: 40,
               paddingRight: 40,
@@ -206,7 +217,7 @@ export async function GET(req: NextRequest) {
               fontWeight: 800,
             }}
           >
-            {guide ? "Free in the browser" : "Think you can beat me?"}
+            {guide || raceTitle ? "Free in the browser" : "Think you can beat me?"}
           </div>
           <div
             style={{
