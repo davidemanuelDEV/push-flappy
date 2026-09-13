@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { laDayKey } from "@/lib/daily";
 import type { LeaderboardEntry } from "@/lib/leaderboard-store";
-import { RACE_NICK_CAP, RACE_POLL_MS } from "@/lib/race";
+import { RACE_NICK_CAP, RACE_POLL_MS, sanitizeRaceTitle } from "@/lib/race";
 
 const DAILY_POLL_MS = 8_000;
 const DAILY_MAX_ROWS = 8;
@@ -18,6 +18,7 @@ type OverlayRow = Pick<LeaderboardEntry, "nick" | "emoji" | "score" | "at" | "co
 export default function StreamOverlay({ raceId }: { raceId?: string }) {
   const [dayKey, setDayKey] = useState(laDayKey());
   const [entries, setEntries] = useState<OverlayRow[]>([]);
+  const [raceTitle, setRaceTitle] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,8 +29,12 @@ export default function StreamOverlay({ raceId }: { raceId?: string }) {
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`Board error ${res.status}`);
-        const data = (await res.json()) as { entries?: OverlayRow[] };
+        const data = (await res.json()) as {
+          entries?: OverlayRow[];
+          title?: string;
+        };
         setEntries(data.entries ?? []);
+        setRaceTitle(sanitizeRaceTitle(data.title));
         setError(null);
       } else {
         const day = laDayKey();
@@ -76,7 +81,7 @@ export default function StreamOverlay({ raceId }: { raceId?: string }) {
         {raceId ? `Race · ${raceId}` : `Daily board · ${dayKey}`}
       </p>
       <h1 className="font-display mt-1 text-[clamp(1.6rem,4vw,2.6rem)] font-bold tracking-tight text-amber-50">
-        Push Flappy
+        {raceTitle || "Push Flappy"}
       </h1>
 
       {loading && rows.length === 0 && (

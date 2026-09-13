@@ -1,6 +1,41 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { RACE_NICK_CAP, withLocalRaceScore } from "./race";
+import {
+  RACE_NICK_CAP,
+  raceDisplayTitle,
+  sanitizeRaceTitle,
+  withLocalRaceScore,
+} from "./race";
+
+describe("sanitizeRaceTitle", () => {
+  it("accepts 2–32 letters, numbers, spaces, and basic punctuation", () => {
+    assert.equal(sanitizeRaceTitle("Eng vs Sales"), "Eng vs Sales");
+    assert.equal(sanitizeRaceTitle("  Q3: Eng-Sales!  "), "Q3: Eng-Sales!");
+    assert.equal(sanitizeRaceTitle("A1"), "A1");
+    assert.equal(sanitizeRaceTitle("x".repeat(32)), "x".repeat(32));
+  });
+
+  it("rejects empty, too short, too long, and unsafe chars", () => {
+    assert.equal(sanitizeRaceTitle(""), undefined);
+    assert.equal(sanitizeRaceTitle("   "), undefined);
+    assert.equal(sanitizeRaceTitle("A"), undefined);
+    assert.equal(sanitizeRaceTitle("x".repeat(33)), undefined);
+    assert.equal(sanitizeRaceTitle("<script>"), undefined);
+    assert.equal(sanitizeRaceTitle("hello@world"), undefined);
+  });
+
+  it("collapses internal whitespace", () => {
+    assert.equal(sanitizeRaceTitle("Eng   vs\tSales"), "Eng vs Sales");
+  });
+});
+
+describe("raceDisplayTitle", () => {
+  it("uses the title when present, otherwise the id-only label", () => {
+    assert.equal(raceDisplayTitle("abc12", "Eng vs Sales"), "Eng vs Sales");
+    assert.equal(raceDisplayTitle("abc12"), "ABC12");
+    assert.equal(raceDisplayTitle("abc12", undefined), "ABC12");
+  });
+});
 
 describe("withLocalRaceScore", () => {
   it("overlays the local nick in place and ticks their score before poll", () => {

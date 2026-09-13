@@ -14,7 +14,13 @@ import {
   persistKind,
   type LeaderboardStorage,
 } from "./leaderboard-store";
-import { RACE_NICK_CAP, mintRaceId, racePipeSeed, sanitizeRaceId } from "./race";
+import {
+  RACE_NICK_CAP,
+  mintRaceId,
+  racePipeSeed,
+  sanitizeRaceId,
+  sanitizeRaceTitle,
+} from "./race";
 
 export type RaceEntry = {
   nick: string;
@@ -31,6 +37,8 @@ export type RaceRecord = {
   seed: string;
   createdAt: number;
   entries: RaceEntry[];
+  /** Optional workplace label. Missing on existing untitled races. */
+  title?: string;
 };
 
 export type RacePayload = RaceRecord & {
@@ -74,12 +82,13 @@ function normalizeEntry(e: RaceEntry): RaceEntry {
   };
 }
 
-function emptyRace(id: string): RaceRecord {
+function emptyRace(id: string, title?: string): RaceRecord {
   return {
     id,
     seed: racePipeSeed(id),
     createdAt: Date.now(),
     entries: [],
+    ...(title ? { title } : {}),
   };
 }
 
@@ -91,6 +100,7 @@ async function parseRecord(raw: string, fallbackId: string): Promise<RaceRecord 
     const entries = Array.isArray(parsed.entries)
       ? parsed.entries.map((e) => normalizeEntry(e as RaceEntry))
       : [];
+    const title = sanitizeRaceTitle(parsed.title);
     return {
       id,
       seed:
@@ -102,6 +112,7 @@ async function parseRecord(raw: string, fallbackId: string): Promise<RaceRecord 
           ? parsed.createdAt
           : Date.now(),
       entries: sortEntries(entries).slice(0, RACE_NICK_CAP),
+      ...(title ? { title } : {}),
     };
   } catch {
     return null;
@@ -200,12 +211,16 @@ export async function getRace(id: string): Promise<RacePayload | null> {
   return { ...record, storage };
 }
 
-export async function createRace(preferredId?: string): Promise<RacePayload> {
+export async function createRace(
+  preferredId?: string,
+  title?: string
+): Promise<RacePayload> {
   const storage = persistKind();
+  const cleanTitle = sanitizeRaceTitle(title);
   if (preferredId) {
     const existing = await getRace(preferredId);
     if (existing) return existing;
-    const record = emptyRace(preferredId);
+    const record = emptyRace(preferredId, cleanTitle);
     await writeRaw(record, storage);
     return { ...record, storage };
   }
@@ -214,14 +229,14 @@ export async function createRace(preferredId?: string): Promise<RacePayload> {
     const id = mintRaceId();
     const existing = await getRace(id);
     if (existing) continue;
-    const record = emptyRace(id);
+    const record = emptyRace(id, cleanTitle);
     await writeRaw(record, storage);
     return { ...record, storage };
   }
 
   const fallbackId =
     sanitizeRaceId(Date.now().toString(36).slice(-8)) ?? mintRaceId();
-  const record = emptyRace(fallbackId);
+  const record = emptyRace(fallbackId, cleanTitle);
   await writeRaw(record, storage);
   return { ...record, storage };
 }
@@ -281,6 +296,7 @@ export async function submitRaceScore(
     seed: race.seed,
     createdAt: race.createdAt,
     entries,
+    ...(race.title ? { title: race.title } : {}),
   };
   await writeRaw(next, race.storage);
   return { ...next, storage: race.storage };
